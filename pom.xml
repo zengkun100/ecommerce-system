@@ -28,6 +28,7 @@
         <module>product-service</module>
         <module>gateway-service</module>
         <module>user-service</module>
+        <module>order-service</module>
     </modules>
     <!--<properties>
         <java.version>1.8</java.version>

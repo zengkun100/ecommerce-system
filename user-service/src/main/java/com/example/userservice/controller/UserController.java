@@ -32,6 +32,7 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
+    // TODO: 需要增加权限校验，只有管理员能删除用户
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
         userService.deleteUser(userId);
