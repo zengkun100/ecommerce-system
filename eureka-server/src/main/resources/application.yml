@@ -1,0 +1,17 @@
+
+server:
+  port: 8761
+
+spring:
+  application:
+    name: eureka-server
+
+# 考虑注册成一个 Eureka 的集群，实现高可用，在集群前面放一个 nginx，简化客户端的使用
+eureka:
+  client:
+    register-with-eureka: false # 不将 Eureka Server 注册到自身
+    fetch-registry: false       # 不从其他 Eureka 服务器获取注册信息
+  instance:
+    hostname: localhost
+
+
