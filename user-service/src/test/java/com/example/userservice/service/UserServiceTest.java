@@ -1,8 +1,10 @@
 package com.example.userservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
@@ -50,6 +52,9 @@ public class UserServiceTest {
 
     private PasswordEncoder encoder = new BCryptPasswordEncoder();
 
+    private AccessToken validToken;
+    private AccessToken expiredToken;
+
     @BeforeEach
     public void setUp() {
         String encryptedPassword = encoder.encode("password");
@@ -59,6 +64,14 @@ public class UserServiceTest {
         testUser.setPassword(encryptedPassword);
         testUser.setEmail("test@example.com");
         testUser.setRole("user");
+
+        validToken = new AccessToken();
+        validToken.setToken("validToken");
+        validToken.setExpiration(LocalDateTime.now().plusMinutes(30));
+
+        expiredToken = new AccessToken();
+        expiredToken.setToken("expiredToken");
+        expiredToken.setExpiration(LocalDateTime.now().minusMinutes(30));
     }
 
 
@@ -143,5 +156,36 @@ public class UserServiceTest {
 
         verify(accessTokenRepository, times(0)).deleteAllByUserId(anyLong());
         verify(refreshTokenRepository, times(0)).deleteAllByUserId(anyLong());
+    }
+
+
+    @Test
+    void testAuthenticateUser_ValidToken() {
+        when(accessTokenRepository.findByToken("validToken")).thenReturn(Optional.of(validToken));
+
+        boolean isAuthenticated = userService.authenticateUser("validToken");
+
+        assertTrue(isAuthenticated, "Valid token should authenticate successfully.");
+        verify(accessTokenRepository, times(1)).findByToken("validToken");
+    }
+
+    @Test
+    void testAuthenticateUser_ExpiredToken() {
+        when(accessTokenRepository.findByToken("expiredToken")).thenReturn(Optional.of(expiredToken));
+
+        boolean isAuthenticated = userService.authenticateUser("expiredToken");
+
+        assertFalse(isAuthenticated, "Expired token should not authenticate.");
+        verify(accessTokenRepository, times(1)).findByToken("expiredToken");
+    }
+
+    @Test
+    void testAuthenticateUser_TokenNotFound() {
+        when(accessTokenRepository.findByToken("nonexistentToken")).thenReturn(Optional.empty());
+
+        boolean isAuthenticated = userService.authenticateUser("nonexistentToken");
+
+        assertFalse(isAuthenticated, "Nonexistent token should not authenticate.");
+        verify(accessTokenRepository, times(1)).findByToken("nonexistentToken");
     }
 }
