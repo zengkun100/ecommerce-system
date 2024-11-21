@@ -98,6 +98,29 @@ public class ProductControllerTest {
     }
 
     @Test
+    public void updateProduct_notfound() throws Exception {
+        Product product = new Product();
+        product.setId(1L);
+        product.setName("Old Product");
+        product.setPrice(new BigDecimal("100.0"));
+        product.setQuantity(10);
+
+        Product updatedProduct = new Product();
+        updatedProduct.setId(1L);
+        updatedProduct.setName("Updated Product");
+        updatedProduct.setPrice(new BigDecimal("120.0"));
+        updatedProduct.setQuantity(15);
+
+        Mockito.when(productService.getProductById(1L)).thenReturn(Optional.empty());
+        Mockito.when(productService.saveProduct(Mockito.any(Product.class))).thenReturn(updatedProduct);
+
+        mockMvc.perform(put("/products/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Updated Product\",\"price\":120.0,\"quantity\":15}"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     public void deleteProduct_success() throws Exception {
         Mockito.doNothing().when(productService).deleteProduct(1L);
 
