@@ -13,6 +13,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.userservice.exception.TokenExpiredException;
 import com.example.userservice.model.AccessToken;
 import com.example.userservice.model.RefreshToken;
 import com.example.userservice.model.User;
@@ -173,9 +174,11 @@ public class UserServiceTest {
     void testAuthenticateUser_ExpiredToken() {
         when(accessTokenRepository.findByToken("expiredToken")).thenReturn(Optional.of(expiredToken));
 
-        boolean isAuthenticated = userService.authenticateUser("expiredToken");
 
-        assertFalse(isAuthenticated, "Expired token should not authenticate.");
+        Exception exception = assertThrows(TokenExpiredException.class, () -> {
+            userService.authenticateUser("expiredToken");
+        });
+        assertEquals("Access token has expired. Please refresh the token.", exception.getMessage());
         verify(accessTokenRepository, times(1)).findByToken("expiredToken");
     }
 

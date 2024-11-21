@@ -114,7 +114,7 @@ class TheUserControllerTest {
                         .param("accessToken", "token123")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(content().string("true"));
+                .andExpect(content().string("User authenticated successfully."));
 
         verify(userService, times(1)).authenticateUser(anyString());
     }

@@ -95,6 +95,6 @@ public class UserControllerTest {
                         .param("accessToken", "sampleAccessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
-                .andExpect(content().string("true"));
+                .andExpect(content().string("User authenticated successfully."));
     }
 }

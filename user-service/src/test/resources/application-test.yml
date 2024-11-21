@@ -5,6 +5,11 @@ spring:
   application:
     name: user-service  # 微服务名称，Eureka 中展示的服务名
 
+  zipkin:
+    enabled: false
+  sleuth:
+    enabled: false
+
   cloud:
     discovery:
       enabled: false
