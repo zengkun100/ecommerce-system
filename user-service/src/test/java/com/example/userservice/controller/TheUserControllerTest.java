@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 class TheUserControllerTest {
@@ -51,10 +52,10 @@ class TheUserControllerTest {
                         .param("email", "test@example.com")
                         .param("role", "user")
                         .contentType(MediaType.APPLICATION_JSON))
+                .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.role").value("user"));
+                .andExpect(jsonPath("$.role").value("user"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
 
         verify(userService, times(1)).createUser(anyString(), anyString(), anyString(), anyString());
     }

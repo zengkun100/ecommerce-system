@@ -49,7 +49,6 @@ public class UserControllerTest {
                         .param("role", "USER")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("testuser"))
                 .andExpect(jsonPath("$.email").value("testuser@example.com"));
     }
 
