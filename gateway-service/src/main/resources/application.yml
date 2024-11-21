@@ -27,6 +27,22 @@ spring:
           enabled: true
           lower-case-service-id: true
 
+resilience4j:
+  ratelimiter:
+    instances:
+      productServiceRateLimiter:
+        limitForPeriod: 10         # 每个时间段允许的请求数量
+        limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
+        timeoutDuration: 500ms     # 请求等待进入限流器的超时时间
+      orderServiceRateLimiter:
+        limitForPeriod: 5          # 每个时间段允许的请求数量
+        limitRefreshPeriod: 2s     # 刷新限流器计数的时间间隔
+        timeoutDuration: 500ms     # 请求等待进入限流器的超时时间
+      userServiceRateLimiter:
+        limitForPeriod: 15         # 每个时间段允许的请求数量
+        limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
+        timeoutDuration: 300ms     # 请求等待进入限流器的超时时间
+
 eureka:
   client:
     service-url:

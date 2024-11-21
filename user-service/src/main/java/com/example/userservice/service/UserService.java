@@ -1,5 +1,7 @@
 package com.example.userservice.service;
 
+import com.example.userservice.exception.TokenExpiredException;
+import com.example.userservice.exception.TokenNotFoundException;
 import com.example.userservice.model.AccessToken;
 import com.example.userservice.model.RefreshToken;
 import com.example.userservice.model.User;
@@ -95,6 +97,35 @@ public class UserService {
 
     public boolean authenticateUser(String accessTokenValue) {
         Optional<AccessToken> accessTokenOpt = accessTokenRepository.findByToken(accessTokenValue);
-        return accessTokenOpt.isPresent() && accessTokenOpt.get().getExpiration().isAfter(LocalDateTime.now());
+        if (accessTokenOpt.isPresent()) {
+            AccessToken accessToken = accessTokenOpt.get();
+            if (accessToken.getExpiration().isAfter(LocalDateTime.now())) {
+                return true;
+            } else {
+                throw new TokenExpiredException("Access token has expired. Please refresh the token.");
+            }
+        }
+        return false;
+    }
+
+    public String refreshAccessToken(String refreshTokenValue) {
+        Optional<RefreshToken> refreshTokenOpt = refreshTokenRepository.findByRefreshToken(refreshTokenValue);
+        if (refreshTokenOpt.isPresent()) {
+            RefreshToken refreshToken = refreshTokenOpt.get();
+            if (refreshToken.getExpiration().isAfter(LocalDateTime.now())) {
+                // 生成新的 Access Token
+                AccessToken newAccessToken = new AccessToken();
+                newAccessToken.setToken(UUID.randomUUID().toString());
+                newAccessToken.setUserId(refreshToken.getUserId());
+                newAccessToken.setExpiration(LocalDateTime.now().plusMinutes(30)); // 设置过期时间为 30 分钟
+                accessTokenRepository.save(newAccessToken);
+
+                return newAccessToken.getToken();
+            } else {
+                throw new TokenExpiredException("Refresh token has expired. Please log in again.");
+            }
+        } else {
+            throw new TokenNotFoundException("Invalid refresh token.");
+        }
     }
 }

@@ -10,12 +10,26 @@ public class RoutesConfiguration {
 
     @Bean
     public RouteLocator declare(RouteLocatorBuilder builder) {
+
         return builder.routes()
                 .route("product-service", r -> r.path("/products/**")
+                        .filters(f -> f.filter(new Resilience4jRateLimiterFilter("productServiceRateLimiter").apply(new Resilience4jRateLimiterFilter.Config())))
                         .uri("lb://product-service"))
                 .route("order-service", r -> r.path("/orders/**")
+                        .filters(f -> f.filter(new Resilience4jRateLimiterFilter("orderServiceRateLimiter").apply(new Resilience4jRateLimiterFilter.Config())))
                         .uri("lb://order-service"))
+                .route("user-service", r -> r.path("/users/**")
+                        .filters(f -> f.filter(new Resilience4jRateLimiterFilter("userServiceRateLimiter").apply(new Resilience4jRateLimiterFilter.Config())))
+                        .uri("lb://user-service"))
                 .build();
+
+
+//        return builder.routes()
+//                .route("product-service", r -> r.path("/products/**")
+//                        .uri("lb://product-service"))
+//                .route("order-service", r -> r.path("/orders/**")
+//                        .uri("lb://order-service"))
+//                .build();
     }
 
 //    @Bean

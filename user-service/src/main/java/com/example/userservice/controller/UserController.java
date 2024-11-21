@@ -1,5 +1,7 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.exception.TokenExpiredException;
+import com.example.userservice.exception.TokenNotFoundException;
 import com.example.userservice.model.User;
 import com.example.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,8 +42,26 @@ public class UserController {
     }
 
     @GetMapping("/authenticate")
-    public ResponseEntity<Boolean> authenticateUser(@RequestParam String accessToken) {
-        boolean isAuthenticated = userService.authenticateUser(accessToken);
-        return ResponseEntity.ok(isAuthenticated);
+    public ResponseEntity<String> authenticateUser(@RequestParam String accessToken) {
+        try {
+            boolean isAuthenticated = userService.authenticateUser(accessToken);
+            if (isAuthenticated) {
+                return ResponseEntity.ok("User authenticated successfully.");
+            } else {
+                return ResponseEntity.status(401).body("Invalid access token.");
+            }
+        } catch (TokenExpiredException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<String> refreshAccessToken(@RequestParam String refreshToken) {
+        try {
+            String newAccessToken = userService.refreshAccessToken(refreshToken);
+            return ResponseEntity.ok(newAccessToken);
+        } catch (TokenExpiredException | TokenNotFoundException e) {
+            return ResponseEntity.status(401).body(e.getMessage());
+        }
     }
 }
