@@ -3,8 +3,8 @@ CREATE TABLE t_order
 (
     order_id     BIGINT AUTO_INCREMENT PRIMARY KEY,   -- 订单 ID，主键
     user_id      BIGINT         NOT NULL,             -- 用户 ID，用于关联用户
-    order_date   TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 下单日期
-    status       VARCHAR(50)    NOT NULL,             -- 订单状态，如 'PENDING', 'SHIPPED', 'DELIVERED'
+    create_time   TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- 下单日期
+    status         INTEGER  NOT NULL,             -- 订单状态，如 'PENDING', 'SHIPPED', 'DELIVERED'
     total_amount DECIMAL(19, 2) NOT NULL              -- 订单总金额
 );
 

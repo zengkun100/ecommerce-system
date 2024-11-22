@@ -20,6 +20,11 @@
 <!--        <rocketmq-starter.version>2.2.3</rocketmq-starter.version>-->
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <org.mapstruct.version>1.5.5.Final</org.mapstruct.version>
+
+        <lombok.version>1.18.24</lombok.version>
+<!--        <version>1.18.24</version>-->
+
 <!--        <mybatis-plus.version>3.5.4.1</mybatis-plus.version>-->
     </properties>
 
@@ -72,6 +77,21 @@
                 <artifactId>jjwt</artifactId>
                 <version>0.9.1</version>
             </dependency>
+
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${org.mapstruct.version}</version>
+            </dependency>
+
+            <!-- MapStruct 注解处理器 -->
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct-processor</artifactId>
+                <version>${org.mapstruct.version}</version>
+                <scope>provided</scope>
+            </dependency>
+
 <!--            <dependency>-->
 <!--                <groupId>com.alibaba.cloud</groupId>-->
 <!--                <artifactId>spring-cloud-alibaba-dependencies</artifactId>-->

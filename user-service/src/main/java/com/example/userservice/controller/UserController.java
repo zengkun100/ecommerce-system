@@ -44,19 +44,19 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/authenticate")
-    public ResponseEntity<String> authenticateUser(@RequestParam String accessToken) {
-        try {
-            boolean isAuthenticated = userService.authenticateUser(accessToken);
-            if (isAuthenticated) {
-                return ResponseEntity.ok("User authenticated successfully.");
-            } else {
-                return ResponseEntity.status(401).body("Invalid access token.");
-            }
-        } catch (TokenExpiredException e) {
-            return ResponseEntity.status(401).body(e.getMessage());
-        }
-    }
+    // @GetMapping("/authenticate")
+    // public ResponseEntity<String> authenticateUser(@RequestParam String accessToken) {
+    //     try {
+    //         boolean isAuthenticated = userService.authenticateUser(accessToken);
+    //         if (isAuthenticated) {
+    //             return ResponseEntity.ok("User authenticated successfully.");
+    //         } else {
+    //             return ResponseEntity.status(401).body("Invalid access token.");
+    //         }
+    //     } catch (TokenExpiredException e) {
+    //         return ResponseEntity.status(401).body(e.getMessage());
+    //     }
+    // }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<String> refreshAccessToken(@RequestParam String refreshToken) {
