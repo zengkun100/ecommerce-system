@@ -1,6 +1,8 @@
 package com.example.orderservice.converter;
 
-import com.example.orderservice.OrderStatus;
+//import com.example.orderservice.OrderStatus;
+
+import com.example.orderservice.enums.OrderStatus;
 
 import javax.persistence.AttributeConverter;
 import javax.persistence.Converter;
