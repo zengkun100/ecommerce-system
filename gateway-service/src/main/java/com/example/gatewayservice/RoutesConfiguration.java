@@ -5,6 +5,8 @@ import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.example.filter.AuthenticationFilter;
+
 @Configuration
 public class RoutesConfiguration {
 
@@ -13,7 +15,9 @@ public class RoutesConfiguration {
 
         return builder.routes()
                 .route("product-service", r -> r.path("/products/**")
-                        .filters(f -> f.filter(new Resilience4jRateLimiterFilter("productServiceRateLimiter").apply(new Resilience4jRateLimiterFilter.Config())))
+                        .filters(f -> f.filter(new AuthenticationFilter())
+                                .filter(new Resilience4jRateLimiterFilter("productServiceRateLimiter").apply(new Resilience4jRateLimiterFilter.Config()))
+                        )
                         .uri("lb://product-service"))
                 .route("order-service", r -> r.path("/orders/**")
                         .filters(f -> f.filter(new Resilience4jRateLimiterFilter("orderServiceRateLimiter").apply(new Resilience4jRateLimiterFilter.Config())))

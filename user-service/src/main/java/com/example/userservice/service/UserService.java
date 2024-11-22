@@ -8,27 +8,50 @@ import com.example.userservice.model.User;
 import com.example.userservice.repository.AccessTokenRepository;
 import com.example.userservice.repository.RefreshTokenRepository;
 import com.example.userservice.repository.UserRepository;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.ZoneId;
 
 @Service
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private AccessTokenRepository accessTokenRepository;
-    @Autowired
-    private RefreshTokenRepository refreshTokenRepository;
+    private final UserRepository userRepository;
+    private final AccessTokenRepository accessTokenRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${jwt.access-token.expiration}")
+    private Long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token.expiration}")
+    private Long refreshTokenExpiration;
+
+    @Autowired
+    public UserService(
+            UserRepository userRepository,
+            AccessTokenRepository accessTokenRepository,
+            RefreshTokenRepository refreshTokenRepository) {
+        this.userRepository = userRepository;
+        this.accessTokenRepository = accessTokenRepository;
+        this.refreshTokenRepository = refreshTokenRepository;
+        this.passwordEncoder = new BCryptPasswordEncoder();
+    }
 
     public User createUser(String username, String rawPassword, String email, String role) {
         String hashedPassword = passwordEncoder.encode(rawPassword);
@@ -50,18 +73,33 @@ public class UserService {
             accessTokenRepository.deleteAllByUserId(user.getId());
             refreshTokenRepository.deleteAllByUserId(user.getId());
 
-            // Generate Access Token
-            String accessTokenValue = UUID.randomUUID().toString();
-            LocalDateTime accessTokenExpiry = LocalDateTime.now().plusMinutes(30);
+            // Generate JWT access token
+            LocalDateTime accessTokenExpiry = LocalDateTime.now().plusMinutes(accessTokenExpiration);
+            String accessTokenValue = Jwts.builder()
+                    .setSubject(user.getId().toString())
+                    .claim("username", user.getUsername())
+                    .claim("role", user.getRole())
+                    .setIssuedAt(new Date())
+                    .setExpiration(Date.from(accessTokenExpiry.atZone(ZoneId.systemDefault()).toInstant()))
+                    .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                    .compact();
+
+            // Generate JWT refresh token
+            LocalDateTime refreshTokenExpiry = LocalDateTime.now().plusDays(refreshTokenExpiration);
+            String refreshTokenValue = Jwts.builder()
+                    .setSubject(user.getId().toString())
+                    .setIssuedAt(new Date())
+                    .setExpiration(Date.from(refreshTokenExpiry.atZone(ZoneId.systemDefault()).toInstant()))
+                    .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                    .compact();
+
+            // Save tokens to database (optional, for token revocation)
             AccessToken accessToken = new AccessToken();
             accessToken.setUserId(user.getId());
             accessToken.setToken(accessTokenValue);
             accessToken.setExpiration(accessTokenExpiry);
             accessTokenRepository.save(accessToken);
 
-            // Generate Refresh Token
-            String refreshTokenValue = UUID.randomUUID().toString();
-            LocalDateTime refreshTokenExpiry = LocalDateTime.now().plusDays(7);
             RefreshToken refreshToken = new RefreshToken();
             refreshToken.setUserId(user.getId());
             refreshToken.setRefreshToken(refreshTokenValue);
@@ -95,17 +133,15 @@ public class UserService {
         userRepository.deleteById(userId);
     }
 
-    public boolean authenticateUser(String accessTokenValue) {
-        Optional<AccessToken> accessTokenOpt = accessTokenRepository.findByToken(accessTokenValue);
-        if (accessTokenOpt.isPresent()) {
-            AccessToken accessToken = accessTokenOpt.get();
-            if (accessToken.getExpiration().isAfter(LocalDateTime.now())) {
-                return true;
-            } else {
-                throw new TokenExpiredException("Access token has expired. Please refresh the token.");
-            }
+    public boolean authenticateUser(String accessToken) {
+        try {
+            Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(accessToken);
+            return true;
+        } catch (ExpiredJwtException e) {
+            throw new TokenExpiredException("Access token has expired");
+        } catch (JwtException e) {
+            return false;
         }
-        return false;
     }
 
     public String refreshAccessToken(String refreshTokenValue) {
@@ -113,14 +149,29 @@ public class UserService {
         if (refreshTokenOpt.isPresent()) {
             RefreshToken refreshToken = refreshTokenOpt.get();
             if (refreshToken.getExpiration().isAfter(LocalDateTime.now())) {
-                // 生成新的 Access Token
+                // 获取用户信息
+                User user = userRepository.findById(refreshToken.getUserId())
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                // 生成新的 JWT Access Token
+                LocalDateTime accessTokenExpiry = LocalDateTime.now().plusMinutes(accessTokenExpiration);
+                String accessTokenValue = Jwts.builder()
+                        .setSubject(user.getId().toString())
+                        .claim("username", user.getUsername())
+                        .claim("role", user.getRole())
+                        .setIssuedAt(new Date())
+                        .setExpiration(Date.from(accessTokenExpiry.atZone(ZoneId.systemDefault()).toInstant()))
+                        .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                        .compact();
+
+                // 保存新的 Access Token 到数据库
                 AccessToken newAccessToken = new AccessToken();
-                newAccessToken.setToken(UUID.randomUUID().toString());
+                newAccessToken.setToken(accessTokenValue);
                 newAccessToken.setUserId(refreshToken.getUserId());
-                newAccessToken.setExpiration(LocalDateTime.now().plusMinutes(30)); // 设置过期时间为 30 分钟
+                newAccessToken.setExpiration(accessTokenExpiry);
                 accessTokenRepository.save(newAccessToken);
 
-                return newAccessToken.getToken();
+                return accessTokenValue;
             } else {
                 throw new TokenExpiredException("Refresh token has expired. Please log in again.");
             }

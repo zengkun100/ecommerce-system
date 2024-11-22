@@ -4,7 +4,7 @@ package com.example.userservice.model;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "user")
+@Table(name = "t_user")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

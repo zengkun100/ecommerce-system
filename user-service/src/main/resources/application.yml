@@ -1,5 +1,3 @@
-
-
 server:
   port: 8082
 
@@ -66,3 +64,10 @@ eureka:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 10  # 心跳间隔（默认 30 秒）
     lease-expiration-duration-in-seconds: 30  # 租约过期时间（默认 90 秒）
+
+jwt:
+  secret: your-256-bit-secret-key-here  # 建议使用至少256位的密钥
+  access-token:
+    expiration: 30  # 30分钟
+  refresh-token:
+    expiration: 7   # 7天
