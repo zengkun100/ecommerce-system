@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DATABASE_TO_UPPER=false;
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+    schema: classpath:schema.sql
+    data: classpath:data.sql
+    initialization-mode: always
+    continue-on-error: false
+
+  zipkin:
+    sender:
+      type: rabbit
+    rabbitmq:
+      addresses: 127.0.0.1:5672
+      queue: zipkin
+
+
+jwt:
+  secret: your-256-bit-secret-key-here  # 建议使用至少256位的密钥
+  access-token:
+    expiration: 30  # 30分钟
+  refresh-token:
+    expiration: 7   # 7天
