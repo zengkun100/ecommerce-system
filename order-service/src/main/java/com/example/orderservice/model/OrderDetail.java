@@ -1,14 +1,18 @@
 package com.example.orderservice.model;
 
+import lombok.Data;
+
 import javax.persistence.*;
 import java.math.BigDecimal;
 
 // 订单明细实体类
 @Entity
 @Table(name = "t_order_detail")
+@Data
 public class OrderDetail {
 
     @Id
+    @Column(name = "order_detail_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderDetailId;
 
@@ -16,15 +20,15 @@ public class OrderDetail {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @Column(nullable = false)
+    @Column(name = "product_id", nullable = false)
     private Long productId;
 
-    @Column(nullable = false)
+    @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
+    @Column(name = "price", nullable = false)
     private BigDecimal price;
 
-    @Column(nullable = false)
+    @Column(name = "total_price", nullable = false)
     private BigDecimal totalPrice;
 }

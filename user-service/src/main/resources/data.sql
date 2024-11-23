@@ -1,1 +1,1 @@
-INSERT INTO "t_user" (username, password, email, role) VALUES ('zengkun', '20230320', 'kun.zeng@timschina.com', 'ADMIN');
+INSERT INTO "T_USER" (username, password, email, role, create_time) VALUES ('zengkun', 'password', 'kun.zeng@timschina.com', 'ADMIN', CURRENT_TIMESTAMP);
