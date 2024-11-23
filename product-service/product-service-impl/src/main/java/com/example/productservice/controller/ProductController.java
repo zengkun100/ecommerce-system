@@ -1,7 +1,7 @@
 package com.example.productservice.controller;
 
 import com.example.productservice.api.model.ProductInfo;
-import com.example.productservice.service.intf.ProductService;
+import com.example.productservice.service.ProductService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

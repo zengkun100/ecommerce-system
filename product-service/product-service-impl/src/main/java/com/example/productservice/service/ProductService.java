@@ -1,4 +1,4 @@
-package com.example.productservice.service.intf;
+package com.example.productservice.service;
 
 import com.example.productservice.api.model.ProductInfo;
 import java.util.List;

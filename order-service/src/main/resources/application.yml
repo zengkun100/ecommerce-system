@@ -6,3 +6,11 @@ spring:
   cloud:
     config:
       uri: http://localhost:8888
+
+    loadbalancer:
+      retry:
+        enabled: true  # 启用重试机制，提升服务可用性
+
+
+  application:
+    name: order-service  # 微服务名称，Eureka 中展示的服务名
