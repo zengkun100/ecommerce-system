@@ -36,21 +36,17 @@ spring:
       path: /h2-console
 
   datasource:
-    url: jdbc:h2:mem:testdb;DATABASE_TO_UPPER=false;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    url: jdbc:h2:mem:testdb;
     driver-class-name: org.h2.Driver
     username: sa
     password: password
-    schema: classpath:schema.sql
-    data: classpath:data.sql
-    initialization-mode: always
-    continue-on-error: false
 
-#  sql:
-#    init:
-#      schema-locations: classpath:schema.sql
-#      data-locations: classpath:data.sql
-#      mode: always
-#      continue-on-error: false
+  sql:
+    init:
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      mode: always
+      continue-on-error: false
 
 eureka:
   client:

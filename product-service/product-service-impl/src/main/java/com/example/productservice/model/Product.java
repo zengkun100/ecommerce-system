@@ -1,48 +1,36 @@
 package com.example.productservice.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
 import javax.persistence.*;
+import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "t_product")
-public class Product {
+@Table(name = "T_PRODUCT")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Product implements Serializable {
     @Id
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "name")
     private String name;
+
+    @Column(name = "price")
     private BigDecimal price;
-    private int quantity;
 
-    // Getters and Setters
-    public Long getId() {
-        return id;
-    }
+    @Column(name = "stock")
+    private int stock;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-
-    public int getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
+    @Column(name = "create_time", updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createTime;
 }

@@ -72,6 +72,12 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
+        Map<Long, Integer> productQuantities
+                = orderRequest.getOrderItems().stream()
+                        .collect(Collectors.toMap(OrderItemRequest::getProductId, OrderItemRequest::getQuantity));
+        // 调用 Product Service 扣减库存
+        productService.reduceStock(productQuantities);
+
 // 5. 创建订单对象
         Order order = new Order();
         order.setUserId(userId);

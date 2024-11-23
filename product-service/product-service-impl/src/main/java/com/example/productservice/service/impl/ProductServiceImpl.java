@@ -6,8 +6,10 @@ import com.example.productservice.repository.ProductRepository;
 import com.example.productservice.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -16,12 +18,12 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     private ProductRepository productRepository;
 
-    @Override
-    public List<ProductInfo> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(this::convertToProductInfo)
-                .collect(Collectors.toList());
-    }
+//    @Override
+//    public List<ProductInfo> getAllProducts() {
+//        return productRepository.findAll().stream()
+//                .map(this::convertToProductInfo)
+//                .collect(Collectors.toList());
+//    }
 
     @Override
     public Optional<ProductInfo> getProductById(Long id) {
@@ -48,6 +50,19 @@ public class ProductServiceImpl implements ProductService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void reduceStock(Map<Long, Integer> productQuantities) {
+        for (Map.Entry<Long, Integer> entry : productQuantities.entrySet()) {
+            Long productId = entry.getKey();
+            int quantity = entry.getValue();
+
+            int updatedRows = productRepository.reduceStock(productId, quantity);
+            if (updatedRows == 0) {
+                throw new RuntimeException("Not enough stock for product ID: " + productId);
+            }
+        }
+    }
+
     // 转换方法
     private ProductInfo convertToProductInfo(Product product) {
         ProductInfo productInfo = new ProductInfo();
@@ -55,7 +70,7 @@ public class ProductServiceImpl implements ProductService {
         productInfo.setName(product.getName());
         productInfo.setPrice(product.getPrice());
 //        productInfo.setDescription(product.getDescription());
-        productInfo.setStock(product.getQuantity());
+        productInfo.setStock(product.getStock());
         // 根据实际字段继续设置...
         return productInfo;
     }
@@ -66,7 +81,7 @@ public class ProductServiceImpl implements ProductService {
         product.setName(productInfo.getName());
         product.setPrice(productInfo.getPrice());
 //        product.setDescription(productInfo.getDescription());
-        product.setQuantity(productInfo.getStock());
+        product.setStock(productInfo.getStock());
         // 根据实际字段继续设置...
         return product;
     }
