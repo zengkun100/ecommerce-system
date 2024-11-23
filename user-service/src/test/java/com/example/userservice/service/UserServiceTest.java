@@ -9,11 +9,19 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import com.example.userservice.controller.BaseTestClass;
 import com.example.userservice.exception.TokenExpiredException;
+import com.example.userservice.exception.TokenNotFoundException;
 import com.example.userservice.model.AccessToken;
 import com.example.userservice.model.RefreshToken;
 import com.example.userservice.model.User;
@@ -21,22 +29,32 @@ import com.example.userservice.repository.AccessTokenRepository;
 import com.example.userservice.repository.RefreshTokenRepository;
 import com.example.userservice.repository.UserRepository;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureException;
 
-@ExtendWith(MockitoExtension.class)
-public class UserServiceTest {
+@ActiveProfiles(value = "test")
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class UserServiceTest extends BaseTestClass {
 
     @Mock
     private UserRepository userRepository;
@@ -65,6 +83,7 @@ public class UserServiceTest {
         testUser.setPassword(encryptedPassword);
         testUser.setEmail("test@example.com");
         testUser.setRole("user");
+        testUser.setId(1L);
 
         validToken = new AccessToken();
         validToken.setToken("validToken");
@@ -73,6 +92,12 @@ public class UserServiceTest {
         expiredToken = new AccessToken();
         expiredToken.setToken("expiredToken");
         expiredToken.setExpiration(LocalDateTime.now().minusMinutes(30));
+
+        // 手动设置 @Value 的值
+        ReflectionTestUtils.setField(userService, "jwtSecret", "testSecretKey");
+        ReflectionTestUtils.setField(userService, "accessTokenExpiration", 15L);
+        ReflectionTestUtils.setField(userService, "refreshTokenExpiration", 7L);
+
     }
 
 
@@ -112,8 +137,6 @@ public class UserServiceTest {
         assertNotNull(tokens);
         assertNotNull(tokens.get("accessToken"));
         assertNotNull(tokens.get("refreshToken"));
-        assertEquals(36, tokens.get("accessToken").length());
-        assertEquals(36, tokens.get("refreshToken").length());
         verify(accessTokenRepository, times(1)).save(any(AccessToken.class));
         verify(refreshTokenRepository, times(1)).save(any(RefreshToken.class));
     }
@@ -159,27 +182,50 @@ public class UserServiceTest {
         verify(refreshTokenRepository, times(0)).deleteAllByUserId(anyLong());
     }
 
-
     @Test
     void testAuthenticateUser_ValidToken() {
-        when(accessTokenRepository.findByToken("validToken")).thenReturn(Optional.of(validToken));
+        String validToken = Jwts.builder()
+                .setSubject("testUser")
+                .signWith(io.jsonwebtoken.SignatureAlgorithm.HS512, "testSecretKey")
+                .compact();
 
-        boolean isAuthenticated = userService.authenticateUser("validToken");
+        boolean result = userService.authenticateUser(validToken);
 
-        assertTrue(isAuthenticated, "Valid token should authenticate successfully.");
-        verify(accessTokenRepository, times(1)).findByToken("validToken");
+        assertTrue(result, "Valid token should return true");
     }
 
     @Test
     void testAuthenticateUser_ExpiredToken() {
-        when(accessTokenRepository.findByToken("expiredToken")).thenReturn(Optional.of(expiredToken));
+        String expiredToken = "expiredToken";
 
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            // 模拟 ExpiredJwtException
+            mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(expiredToken))
+                    .thenThrow(new ExpiredJwtException(null, null, "Token expired"));
 
-        Exception exception = assertThrows(TokenExpiredException.class, () -> {
-            userService.authenticateUser("expiredToken");
-        });
-        assertEquals("Access token has expired. Please refresh the token.", exception.getMessage());
-        verify(accessTokenRepository, times(1)).findByToken("expiredToken");
+            // 调用方法并验证抛出 TokenExpiredException
+            Exception exception = assertThrows(TokenExpiredException.class, () -> {
+                userService.authenticateUser(expiredToken);
+            });
+
+            assertEquals("Access token has expired", exception.getMessage());
+        }
+    }
+
+    @Test
+    void testAuthenticateUser_InvalidToken() {
+        String invalidToken = "invalidToken";
+
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            // 模拟签名错误
+            mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(invalidToken))
+                    .thenThrow(new SignatureException("Invalid signature"));
+
+            // 调用方法
+            boolean result = userService.authenticateUser(invalidToken);
+
+            assertFalse(result, "Invalid token should return false");
+        }
     }
 
     @Test
@@ -189,6 +235,74 @@ public class UserServiceTest {
         boolean isAuthenticated = userService.authenticateUser("nonexistentToken");
 
         assertFalse(isAuthenticated, "Nonexistent token should not authenticate.");
-        verify(accessTokenRepository, times(1)).findByToken("nonexistentToken");
+    }
+
+    @Test
+    void testRefreshAccessToken_ValidToken() {
+        String refreshTokenValue = "validRefreshToken";
+        String userId = "123";
+        String username = "testUser";
+        String role = "USER";
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRefreshToken(refreshTokenValue);
+        refreshToken.setUserId(1L);
+        refreshToken.setExpiration(LocalDateTime.now().plusMinutes(30));
+
+        User user = new User();
+        user.setId(1L);
+        user.setUsername(username);
+        user.setRole(role);
+
+        when(refreshTokenRepository.findByRefreshToken(refreshTokenValue)).thenReturn(Optional.of(refreshToken));
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        String result = userService.refreshAccessToken(refreshTokenValue);
+
+        assertNotNull(result);
+        verify(accessTokenRepository).save(any(AccessToken.class));
+    }
+
+    @Test
+    void testRefreshAccessToken_ExpiredRefreshToken() {
+        String refreshTokenValue = "expiredRefreshToken";
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRefreshToken(refreshTokenValue);
+        refreshToken.setExpiration(LocalDateTime.now().minusMinutes(10));
+
+        when(refreshTokenRepository.findByRefreshToken(refreshTokenValue)).thenReturn(Optional.of(refreshToken));
+
+        TokenExpiredException exception = assertThrows(TokenExpiredException.class, () ->
+                userService.refreshAccessToken(refreshTokenValue));
+        assertEquals("Refresh token has expired. Please log in again.", exception.getMessage());
+    }
+
+    @Test
+    void testRefreshAccessToken_InvalidRefreshToken() {
+        String refreshTokenValue = "invalidRefreshToken";
+
+        when(refreshTokenRepository.findByRefreshToken(refreshTokenValue)).thenReturn(Optional.empty());
+
+        TokenNotFoundException exception = assertThrows(TokenNotFoundException.class, () ->
+                userService.refreshAccessToken(refreshTokenValue));
+        assertEquals("Invalid refresh token.", exception.getMessage());
+    }
+
+    @Test
+    void testRefreshAccessToken_UserNotFound() {
+        String refreshTokenValue = "validRefreshToken";
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setRefreshToken(refreshTokenValue);
+        refreshToken.setUserId(1L);
+        refreshToken.setExpiration(LocalDateTime.now().plusMinutes(30));
+
+        when(refreshTokenRepository.findByRefreshToken(refreshTokenValue)).thenReturn(Optional.of(refreshToken));
+        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () ->
+                userService.refreshAccessToken(refreshTokenValue));
+        assertEquals("User not found", exception.getMessage());
     }
 }

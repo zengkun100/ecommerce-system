@@ -1,5 +1,6 @@
 package com.example.userservice.controller;
 
+import com.example.userservice.exception.TokenExpiredException;
 import com.example.userservice.model.User;
 import com.example.userservice.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -96,5 +97,47 @@ public class UserControllerTest {
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
                 .andExpect(content().string("User authenticated successfully."));
+    }
+
+    @Test
+    public void testAuthenticateUserFail() throws Exception {
+        Mockito.when(userService.authenticateUser(any(String.class))).thenReturn(false);
+
+        mockMvc.perform(get("/users/authenticate")
+                        .param("accessToken", "sampleAccessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isUnauthorized());
+    }
+
+
+    @Test
+    public void testAuthenticateUserError() throws Exception {
+        Mockito.when(userService.authenticateUser(any(String.class))).thenThrow(TokenExpiredException.class);
+
+        mockMvc.perform(get("/users/authenticate")
+                        .param("accessToken", "sampleAccessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void testRefreshAccessTokenError() throws Exception {
+        Mockito.when(userService.refreshAccessToken(any(String.class))).thenThrow(TokenExpiredException.class);
+
+        mockMvc.perform(post("/users/refresh-token")
+                        .param("refreshToken", "sampleAccessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void testRefreshAccessTokenOK() throws Exception {
+        Mockito.when(userService.refreshAccessToken(any(String.class))).thenReturn("sampleAccessToken");
+
+        mockMvc.perform(post("/users/refresh-token")
+                        .param("refreshToken", "sampleAccessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andExpect(content().string("sampleAccessToken"));
     }
 }
