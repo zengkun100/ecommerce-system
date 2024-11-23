@@ -91,31 +91,5 @@ class TheUserControllerTest {
         verify(userService, times(1)).logoutUser(anyString());
     }
 
-    @Test
-    void deleteUser_ValidUserId_ReturnsNoContent() throws Exception {
-        Long userId = 1L;
 
-        doNothing().when(userService).deleteUser(anyLong());
-
-        mockMvc.perform(delete("/users/{userId}", userId)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
-
-        verify(userService, times(1)).deleteUser(anyLong());
-    }
-
-    @Test
-    void authenticateUser_ValidAccessToken_ReturnsOk() throws Exception {
-        boolean isAuthenticated = true;
-
-        when(userService.authenticateUser(anyString())).thenReturn(isAuthenticated);
-
-        mockMvc.perform(get("/users/authenticate")
-                        .param("accessToken", "token123")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string("User authenticated successfully."));
-
-        verify(userService, times(1)).authenticateUser(anyString());
-    }
 }

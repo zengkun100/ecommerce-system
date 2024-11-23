@@ -75,7 +75,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.example.eurekaserver.EurekaServerApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

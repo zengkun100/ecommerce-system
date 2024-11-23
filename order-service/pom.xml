@@ -107,7 +107,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.example.orderservice.OrderServiceApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

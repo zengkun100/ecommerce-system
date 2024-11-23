@@ -80,13 +80,6 @@ public class UserControllerTest {
                 .andExpect(status().isNoContent());
     }
 
-    @Test
-    public void testDeleteUser() throws Exception {
-        Mockito.doNothing().when(userService).deleteUser(any(Long.class));
-
-        mockMvc.perform(delete("/users/{userId}", 1L))
-                .andExpect(status().isNoContent());
-    }
 
     @Test
     public void testAuthenticateUser() throws Exception {

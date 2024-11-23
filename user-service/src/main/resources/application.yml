@@ -40,7 +40,8 @@ spring:
 
   cloud:
     config:
-      uri: http://localhost:8888
+      uri: ${CONFIG_SERVER_URL:http://127.0.0.1:8888}
+      fail-fast: false
 
 #  sql:
 #    init:
@@ -52,7 +53,7 @@ spring:
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/   # Eureka Server 的地址
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}   # Eureka Server 的地址
     #        register-with-eureka: true  # Register gateway service with Eureka
     #        fetch-registry: true  # Fetch service registry to route requests
     #        registry-fetch-interval-seconds: 30  # 从 Eureka 服务器获取注册信息的间隔时间（秒），默认值通常是 30

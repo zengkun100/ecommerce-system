@@ -1,0 +1,103 @@
+version: "3.9"
+services:
+  # 分布式跟踪服务（Zipkin）
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - docker-network
+
+  # 配置中心服务
+  config-server:
+    image: config-server:latest
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    networks:
+      - docker-network
+
+  # 服务注册中心
+  eureka-server:
+    image: eureka-server:latest
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - docker-network
+
+  # 网关服务
+  gateway-service:
+    image: gateway-service:latest
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      - config-server
+      - zipkin
+      - eureka-server
+    environment:
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - ZIPKIN_URL=http://zipkin:9411
+    networks:
+      - docker-network
+
+
+  # 用户服务
+  user-service:
+    image: user-service:latest
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - config-server
+      - zipkin
+      - eureka-server
+    command: --spring.cloud.config.uri=http://config-server:8888
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - ZIPKIN_URL=http://zipkin:9411
+    networks:
+      - docker-network
+
+  # 订单服务
+  order-service:
+    image: order-service:latest
+    container_name: order-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - config-server
+      - zipkin
+      - eureka-server
+    command: --spring.cloud.config.uri=http://config-server:8888
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - ZIPKIN_URL=http://zipkin:9411
+    networks:
+      - docker-network
+
+  # 商品服务
+  product-service:
+    image: product-service:latest
+    container_name: product-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - config-server
+      - zipkin
+      - eureka-server
+    command: --spring.cloud.config.uri=http://config-server:8888
+    environment:
+      - CONFIG_SERVER_URL=http://config-server:8888
+      - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
+      - ZIPKIN_URL=http://zipkin:9411
+    networks:
+      - docker-network
+
+networks:
+  docker-network:
+    driver: bridge

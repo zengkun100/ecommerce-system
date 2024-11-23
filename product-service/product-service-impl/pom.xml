@@ -140,8 +140,7 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <version>${spring-boot.version}</version>
                 <configuration>
-                    <mainClass>com.example.productservice.ProductServiceImplApplication</mainClass>
-                    <skip>true</skip>
+                    <mainClass>com.example.productservice.ProductServiceApplication</mainClass>
                 </configuration>
                 <executions>
                     <execution>

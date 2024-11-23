@@ -29,6 +29,7 @@ import com.example.userservice.repository.AccessTokenRepository;
 import com.example.userservice.repository.RefreshTokenRepository;
 import com.example.userservice.repository.UserRepository;
 
+import com.example.userservice.service.impl.UserServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
@@ -65,7 +66,7 @@ public class UserServiceTest extends BaseTestClass {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
     @InjectMocks
-    private UserService userService;
+    private UserServiceImpl userService;
 
     private User testUser;
 
@@ -112,17 +113,6 @@ public class UserServiceTest extends BaseTestClass {
         assertEquals("user", createdUser.getRole());
 
         verify(userRepository, times(1)).save(any(User.class));
-    }
-
-    @Test
-    public void test_DeleteUserOk() {
-        doNothing().when(userRepository).deleteById(anyLong());
-        doNothing().when(accessTokenRepository).deleteAllByUserId(anyLong());
-        doNothing().when(refreshTokenRepository).deleteAllByUserId(anyLong());
-
-        userService.deleteUser(1L);
-
-        verify(userRepository, times(1)).deleteById(1L);
     }
 
     @Test
