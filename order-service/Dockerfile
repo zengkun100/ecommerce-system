@@ -11,7 +11,7 @@ COPY target/order-service-0.0.1-SNAPSHOT.jar order-service.jar
 ENV JAVA_OPTS="-Xmx512m -Xms512m"
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 8083
 
 # 启动命令
 ENTRYPOINT ["sh", "-c", "sleep 20 && java -jar order-service.jar"]
