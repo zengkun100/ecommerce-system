@@ -17,6 +17,8 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -50,8 +52,31 @@ public class UserControllerTest {
                         .param("role", "USER")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("testuser@example.com"));
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("success"));
     }
+
+    @Test
+    public void testUnregister() throws Exception {
+        doNothing().when(userService).unregisterUser("accessToken");
+        mockMvc.perform(delete("/users/unregister")
+                        .param("accessToken", "accessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("success"));
+    }
+
+    @Test
+    public void testUnregister_error() throws Exception {
+        doThrow(new RuntimeException()).when(userService).unregisterUser("accessToken");
+        mockMvc.perform(delete("/users/unregister")
+                        .param("accessToken", "accessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(5001));
+    }
+
 
     @Test
     public void testLoginUser() throws Exception {
@@ -66,52 +91,24 @@ public class UserControllerTest {
                         .param("password", "password123")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("sampleAccessToken"))
-                .andExpect(jsonPath("$.refreshToken").value("sampleRefreshToken"));
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data.accessToken").value("sampleAccessToken"))
+                .andExpect(jsonPath("$.data.refreshToken").value("sampleRefreshToken"));
     }
 
     @Test
-    public void testLogoutUser() throws Exception {
-        Mockito.doNothing().when(userService).logoutUser(any(String.class));
+    public void testLoginUser_error() throws Exception {
+        Mockito.when(userService.loginUser(any(String.class), any(String.class))).thenThrow(new RuntimeException());
 
-        mockMvc.perform(post("/users/logout")
-                        .param("accessToken", "sampleAccessToken")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isNoContent());
-    }
-
-
-    @Test
-    public void testAuthenticateUser() throws Exception {
-        Mockito.when(userService.authenticateUser(any(String.class))).thenReturn(true);
-
-        mockMvc.perform(get("/users/authenticate")
-                        .param("accessToken", "sampleAccessToken")
+        mockMvc.perform(post("/users/login")
+                        .param("username", "testuser")
+                        .param("password", "password123")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
-                .andExpect(content().string("User authenticated successfully."));
+                .andExpect(jsonPath("$.code").value(5001));
     }
 
-    @Test
-    public void testAuthenticateUserFail() throws Exception {
-        Mockito.when(userService.authenticateUser(any(String.class))).thenReturn(false);
-
-        mockMvc.perform(get("/users/authenticate")
-                        .param("accessToken", "sampleAccessToken")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isUnauthorized());
-    }
-
-
-    @Test
-    public void testAuthenticateUserError() throws Exception {
-        Mockito.when(userService.authenticateUser(any(String.class))).thenThrow(TokenExpiredException.class);
-
-        mockMvc.perform(get("/users/authenticate")
-                        .param("accessToken", "sampleAccessToken")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isUnauthorized());
-    }
 
     @Test
     public void testRefreshAccessTokenError() throws Exception {
@@ -120,7 +117,8 @@ public class UserControllerTest {
         mockMvc.perform(post("/users/refresh-token")
                         .param("refreshToken", "sampleAccessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(5001));
     }
 
     @Test
@@ -131,6 +129,8 @@ public class UserControllerTest {
                         .param("refreshToken", "sampleAccessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
-                .andExpect(content().string("sampleAccessToken"));
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("success"))
+                .andExpect(jsonPath("$.data").value("sampleAccessToken"));
     }
 }

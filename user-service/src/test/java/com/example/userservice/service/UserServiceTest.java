@@ -9,12 +9,16 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,6 +37,7 @@ import com.example.userservice.service.impl.UserServiceImpl;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,6 +79,10 @@ public class UserServiceTest extends BaseTestClass {
 
     private AccessToken validToken;
     private AccessToken expiredToken;
+
+    private String jwtSecret = "testSecretKey";
+    private final Long userId = 1L;
+    private final String username = "testUser";
 
     @BeforeEach
     public void setUp() {
@@ -189,11 +198,9 @@ public class UserServiceTest extends BaseTestClass {
         String expiredToken = "expiredToken";
 
         try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
-            // 模拟 ExpiredJwtException
             mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(expiredToken))
                     .thenThrow(new ExpiredJwtException(null, null, "Token expired"));
 
-            // 调用方法并验证抛出 TokenExpiredException
             Exception exception = assertThrows(TokenExpiredException.class, () -> {
                 userService.authenticateUser(expiredToken);
             });
@@ -207,11 +214,9 @@ public class UserServiceTest extends BaseTestClass {
         String invalidToken = "invalidToken";
 
         try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
-            // 模拟签名错误
             mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(invalidToken))
                     .thenThrow(new SignatureException("Invalid signature"));
 
-            // 调用方法
             boolean result = userService.authenticateUser(invalidToken);
 
             assertFalse(result, "Invalid token should return false");
@@ -294,5 +299,53 @@ public class UserServiceTest extends BaseTestClass {
         RuntimeException exception = assertThrows(RuntimeException.class, () ->
                 userService.refreshAccessToken(refreshTokenValue));
         assertEquals("User not found", exception.getMessage());
+    }
+
+    @Test
+    void unregisterUser_Success() {
+        // Arrange: 模拟解析token获取userId
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            JwtParser jwtParser = mock(JwtParser.class);
+            Jws<Claims> mockedJws = mock(Jws.class);
+            Claims claims = mock(Claims.class);
+
+            when(mockedJws.getBody()).thenReturn(claims);
+            when(claims.getSubject()).thenReturn(String.valueOf(userId));
+            when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
+            when(jwtParser.parseClaimsJws(anyString())).thenReturn(mockedJws);
+
+            mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
+
+            when(userRepository.findById(userId)).thenReturn(Optional.ofNullable(null));
+            doNothing().when(accessTokenRepository).deleteAllByUserId(userId);
+            doNothing().when(refreshTokenRepository).deleteAllByUserId(userId);
+            doNothing().when(userRepository).deleteById(userId);
+
+            userService.unregisterUser("mockedAccessToken");
+
+            verify(accessTokenRepository, times(1)).deleteAllByUserId(userId);
+            verify(refreshTokenRepository, times(1)).deleteAllByUserId(userId);
+            verify(userRepository, times(1)).deleteById(userId);
+        }
+    }
+
+    @Test
+    void unregisterUser_InvalidToken() {
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            JwtParser jwtParser = mock(JwtParser.class);
+            when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
+            when(jwtParser.parseClaimsJws(anyString()))
+                    .thenThrow(new RuntimeException("Invalid access token"));
+
+            mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
+
+            try {
+                userService.unregisterUser("mockedAccessToken");
+            } catch (RuntimeException e) {
+                assert e.getMessage().equals("Invalid access token");
+            }
+
+            verifyNoInteractions(userRepository, accessTokenRepository, refreshTokenRepository);
+        }
     }
 }

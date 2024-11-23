@@ -2,6 +2,7 @@ package com.example.userservice.controller;
 
 import java.util.*;
 
+import com.example.common.response.ApiResponse;
 import com.example.userservice.model.User;
 import com.example.userservice.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,10 +10,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -54,42 +58,42 @@ class TheUserControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.role").value("user"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("success"));
 
         verify(userService, times(1)).createUser(anyString(), anyString(), anyString(), anyString());
     }
 
     @Test
-    void loginUser_ValidCredentials_ReturnsOk() throws Exception {
-        Map<String, String> tokens = new HashMap<>();
-        tokens.put("accessToken", "token123");
-        tokens.put("refreshToken", "refreshToken123");
+    public void testLogoutUser_Success() throws Exception {
+        String accessToken = "validToken";
+        doNothing().when(userService).logoutUser(accessToken);
 
-        when(userService.loginUser(anyString(), anyString())).thenReturn(tokens);
-
-        mockMvc.perform(post("/users/login")
-                        .param("username", "testuser")
-                        .param("password", "password")
+        mockMvc.perform(post("/users/logout")
+                        .param("accessToken", accessToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("token123"))
-                .andExpect(jsonPath("$.refreshToken").value("refreshToken123"));
+                .andDo(print())
+                .andExpect(jsonPath("$.code").value(0))
+                .andExpect(jsonPath("$.message").value("success"));
 
-        verify(userService, times(1)).loginUser(anyString(), anyString());
+        verify(userService, times(1)).logoutUser(accessToken);
     }
 
     @Test
-    void logoutUser_ValidAccessToken_ReturnsNoContent() throws Exception {
-        doNothing().when(userService).logoutUser(anyString());
+    public void testLogoutUser_Error() throws Exception {
+        String accessToken = "validToken";
+        String errorMessage = "error";
+
+        doThrow(new RuntimeException(errorMessage)).when(userService).logoutUser(accessToken);
 
         mockMvc.perform(post("/users/logout")
-                        .param("accessToken", "token123")
+                        .param("accessToken", accessToken)
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNoContent());
+                .andDo(print())
+                .andExpect(jsonPath("$.message").value("error"));
 
-        verify(userService, times(1)).logoutUser(anyString());
+        verify(userService, times(1)).logoutUser(accessToken);
     }
-
 
 }
