@@ -14,4 +14,4 @@ ENV JAVA_OPTS="-Xmx512m -Xms512m"
 EXPOSE 8081
 
 # 启动命令
-ENTRYPOINT ["sh", "-c", "sleep 15 && java -jar product-service.jar"]
+ENTRYPOINT ["sh", "-c", "sleep 20 && java -jar product-service.jar"]

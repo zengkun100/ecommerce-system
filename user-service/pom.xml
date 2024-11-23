@@ -141,7 +141,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.example.userservice.UserServiceApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

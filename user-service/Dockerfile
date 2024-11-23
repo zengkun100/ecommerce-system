@@ -10,10 +10,8 @@ COPY target/user-service-0.0.1-SNAPSHOT.jar user-service.jar
 # 设置 JVM 参数
 ENV JAVA_OPTS="-Xmx512m -Xms512m"
 
-RUN sleep 30
-
 # 暴露端口
 EXPOSE 8082
 
 # 启动命令
-ENTRYPOINT ["sh", "-c", "sleep 15 && java -jar user-service.jar"]
+ENTRYPOINT ["sh", "-c", "sleep 20 && java -jar user-service.jar"]
