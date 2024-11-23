@@ -17,12 +17,16 @@ public class ApiCode {
 
     public static final int SYS_ERROR = 5001;   // 系统错误
 
+
     public static final int PRODUCT_NOT_FOUND = 4040;
+    public static final int INSUFFICIENT_STOCK = 4041;
 
 
     // 错误消息定义
     public static class Message {
         public static final String PRODUCT_NOT_FOUND = "Product not found";
+
+        public static final String INSUFFICIENT_STOCK = "Insufficient stock";
         // 其他错误消息...
     }
 }

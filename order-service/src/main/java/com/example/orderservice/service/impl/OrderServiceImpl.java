@@ -1,5 +1,6 @@
 package com.example.orderservice.service.impl;
 
+import com.example.common.response.ApiResponse;
 import com.example.orderservice.client.ProductServiceClient;
 import com.example.orderservice.enums.OrderStatus;
 import com.example.orderservice.exception.OrderException;
@@ -38,7 +39,7 @@ public class OrderServiceImpl implements OrderService {
     public String placeOrder(OrderRequest orderRequest, Long userId) {
 
         // 1. 调用product-service获取商品信息
-        ResponseEntity<List<ProductInfo>> productResponse = productService.getProductsByIds(
+        ResponseEntity<ApiResponse<List<ProductInfo>>> productResponse = productService.getProductsByIds(
                 orderRequest.getOrderItems().stream()
                         .map(OrderItemRequest::getProductId)
                         .collect(Collectors.toList())
@@ -48,7 +49,7 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderException("获取商品信息失败");
         }
 
-        List<ProductInfo> products = productResponse.getBody();
+        List<ProductInfo> products = productResponse.getBody().getData();
 
         // 2. 验证商品数量是否完整
         if (products.size() < orderRequest.getOrderItems().size()) {
@@ -76,9 +77,13 @@ public class OrderServiceImpl implements OrderService {
                 = orderRequest.getOrderItems().stream()
                         .collect(Collectors.toMap(OrderItemRequest::getProductId, OrderItemRequest::getQuantity));
         // 调用 Product Service 扣减库存
-        productService.reduceStock(productQuantities);
+        ResponseEntity<ApiResponse<Void>> stockResponse = productService.reduceStock(productQuantities);
+        if (!stockResponse.getStatusCode().is2xxSuccessful() || stockResponse.getBody() == null || !stockResponse.getBody().isSuccess()) {
+            String errorMessage = stockResponse.getBody() != null ? stockResponse.getBody().getMessage() : "库存扣减失败";
+            throw new OrderException(errorMessage);
+        }
 
-// 5. 创建订单对象
+        // 5. 创建订单对象
         Order order = new Order();
         order.setUserId(userId);
         order.setCreateTime(LocalDateTime.now());

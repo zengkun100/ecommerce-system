@@ -1,5 +1,6 @@
 package com.example.orderservice.client;
 
+import com.example.common.response.ApiResponse;
 import com.example.productservice.api.model.ProductInfo;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.ResponseEntity;
@@ -30,8 +31,8 @@ public interface ProductServiceClient {
 //    ResponseEntity<Void> deleteProduct(@PathVariable("id") Long id);
 
     @GetMapping("/products/batch")
-    ResponseEntity<List<ProductInfo>> getProductsByIds(@RequestParam("ids") List<Long> ids);
+    ResponseEntity<ApiResponse<List<ProductInfo>>> getProductsByIds(@RequestParam("ids") List<Long> ids);
 
     @PutMapping("/products/reduce-stock")
-    void reduceStock(@RequestBody Map<Long, Integer> productQuantities);
+    ResponseEntity<ApiResponse<Void>> reduceStock(@RequestBody Map<Long, Integer> productQuantities);
 }
