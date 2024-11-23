@@ -1,5 +1,7 @@
 package com.example.userservice.controller;
 
+import com.example.common.response.ApiCode;
+import com.example.common.response.ApiResponse;
 import com.example.userservice.exception.TokenExpiredException;
 import com.example.userservice.exception.TokenNotFoundException;
 import com.example.userservice.model.User;
@@ -21,36 +23,48 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> registerUser(@RequestParam String username, @RequestParam String password, @RequestParam String email, @RequestParam String role) {
+    public ResponseEntity<ApiResponse<Long>> registerUser(@RequestParam String username, @RequestParam String password, @RequestParam String email, @RequestParam String role) {
         User user = userService.createUser(username, password, email, role);
-        return ResponseEntity.ok(user);
+        return ResponseEntity.ok(ApiResponse.success(user.getId()));
     }
 
     @DeleteMapping("/unregister")
-    public ResponseEntity<Void> unregisterUser(@RequestParam String accessToken) {
-        userService.unregisterUser(accessToken);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse<Void>> unregisterUser(@RequestParam String accessToken) {
+        try {
+            userService.unregisterUser(accessToken);
+            return ResponseEntity.ok(ApiResponse.success(null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
+        }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> loginUser(@RequestParam String username, @RequestParam String password) {
-        Map<String, String> tokens = userService.loginUser(username, password);
-        return ResponseEntity.ok(tokens);
+    public ResponseEntity<ApiResponse<Map<String, String>>> loginUser(@RequestParam String username, @RequestParam String password) {
+        try {
+            Map<String, String> tokens = userService.loginUser(username, password);
+            return ResponseEntity.ok(ApiResponse.success(tokens));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
+        }
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logoutUser(@RequestParam String accessToken) {
-        userService.logoutUser(accessToken);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<ApiResponse<Void>> logoutUser(@RequestParam String accessToken) {
+        try {
+            userService.logoutUser(accessToken);
+            return ResponseEntity.ok(ApiResponse.success(null));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
+        }
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<String> refreshAccessToken(@RequestParam String refreshToken) {
+    public ResponseEntity<ApiResponse<String>> refreshAccessToken(@RequestParam String refreshToken) {
         try {
             String newAccessToken = userService.refreshAccessToken(refreshToken);
-            return ResponseEntity.ok(newAccessToken);
+            return ResponseEntity.ok(ApiResponse.success(newAccessToken));
         } catch (TokenExpiredException | TokenNotFoundException e) {
-            return ResponseEntity.status(401).body(e.getMessage());
+            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
         }
     }
 }

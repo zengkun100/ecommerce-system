@@ -68,20 +68,25 @@ public class ProductController {
     }
 
     @GetMapping("/batch")
-    public ResponseEntity<List<ProductInfo>> getProductsByIds(@RequestParam List<Long> ids) {
+    public ResponseEntity<ApiResponse<List<ProductInfo>>> getProductsByIds(@RequestParam List<Long> ids) {
         List<ProductInfo> products = productService.getProductsByIds(ids);
-        return products.isEmpty() ? 
-            ResponseEntity.notFound().build() : 
-            ResponseEntity.ok(products);
+        return products.isEmpty() 
+            ? ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(ApiResponse.error(ApiCode.PRODUCT_NOT_FOUND, ApiCode.Message.PRODUCT_NOT_FOUND))
+            : ResponseEntity.ok(ApiResponse.success(products));
     }
 
     @PutMapping("/reduce-stock")
-    public String reduceStock(@RequestBody Map<Long, Integer> productQuantities) {
+    public ResponseEntity<ApiResponse<Void>> reduceStock(@RequestBody Map<Long, Integer> productQuantities) {
         try {
             productService.reduceStock(productQuantities);
-            return "Stock reduced successfully for all products.";
+            return ResponseEntity.ok(ApiResponse.success(null));
         } catch (RuntimeException e) {
-            return e.getMessage();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(
+                            ApiCode.INSUFFICIENT_STOCK,
+                            e.getMessage())
+                    );
         }
     }
 }
