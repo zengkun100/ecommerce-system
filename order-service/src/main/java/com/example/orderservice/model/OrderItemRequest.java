@@ -12,7 +12,7 @@ public class OrderItemRequest {
         return productId;
     }
     
-    public Integer getQuantity() {
+public Integer getQuantity() {
         return quantity;
     }
 }

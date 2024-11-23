@@ -14,6 +14,7 @@ import java.util.Map;
 @RequestMapping("/users")
 public class UserController {
     private final UserService userService;
+
     @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
@@ -23,6 +24,12 @@ public class UserController {
     public ResponseEntity<User> registerUser(@RequestParam String username, @RequestParam String password, @RequestParam String email, @RequestParam String role) {
         User user = userService.createUser(username, password, email, role);
         return ResponseEntity.ok(user);
+    }
+
+    @DeleteMapping("/unregister")
+    public ResponseEntity<Void> unregisterUser(@RequestParam String accessToken) {
+        userService.unregisterUser(accessToken);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")
@@ -36,27 +43,6 @@ public class UserController {
         userService.logoutUser(accessToken);
         return ResponseEntity.noContent().build();
     }
-
-    // TODO: 需要增加权限校验，只有管理员能删除用户
-    @DeleteMapping("/{userId}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long userId) {
-        userService.deleteUser(userId);
-        return ResponseEntity.noContent().build();
-    }
-
-    // @GetMapping("/authenticate")
-    // public ResponseEntity<String> authenticateUser(@RequestParam String accessToken) {
-    //     try {
-    //         boolean isAuthenticated = userService.authenticateUser(accessToken);
-    //         if (isAuthenticated) {
-    //             return ResponseEntity.ok("User authenticated successfully.");
-    //         } else {
-    //             return ResponseEntity.status(401).body("Invalid access token.");
-    //         }
-    //     } catch (TokenExpiredException e) {
-    //         return ResponseEntity.status(401).body(e.getMessage());
-    //     }
-    // }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<String> refreshAccessToken(@RequestParam String refreshToken) {

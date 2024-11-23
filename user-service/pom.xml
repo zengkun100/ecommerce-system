@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <!--    <groupId>com.example</groupId>-->
+
     <artifactId>user-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>user-service</name>
@@ -13,14 +13,6 @@
         <artifactId>ecommerce-system</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-
-
-    <!--    <properties>-->
-    <!--        <java.version>1.8</java.version>-->
-    <!--        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>-->
-    <!--        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>-->
-    <!--        <spring-boot.version>2.6.13</spring-boot.version>-->
-    <!--    </properties>-->
 
     <dependencies>
         <dependency>
@@ -77,10 +69,17 @@
             <artifactId>jjwt</artifactId>
         </dependency>
 
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+<!--			<optional>true</optional>-->
+		</dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
@@ -108,8 +107,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>17</source>
+                    <target>17</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
