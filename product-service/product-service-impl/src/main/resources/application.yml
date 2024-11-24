@@ -1,4 +1,3 @@
-
 server:
   port: 8081
 
@@ -58,3 +57,11 @@ logging:
     root: INFO
     org.springframework.jdbc: DEBUG
     org.hibernate: DEBUG
+
+resilience4j:
+  ratelimiter:
+    instances:
+      productServiceRateLimiter:
+        limitForPeriod: 100        # 每个时间段允许的请求数量
+        limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
+        timeoutDuration: 50ms     # 请求等待进入限流器的超时时间

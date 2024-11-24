@@ -29,7 +29,7 @@ resilience4j:
       productServiceRateLimiter:
         limitForPeriod: 1         # 每个时间段允许的请求数量
         limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
-        timeoutDuration: 500ms     # 请求等待进入限流器的超时时间
+        timeoutDuration: 50ms     # 请求等待进入限流器的超时时间
       orderServiceRateLimiter:
         limitForPeriod: 5          # 每个时间段允许的请求数量
         limitRefreshPeriod: 2s     # 刷新限流器计数的时间间隔
@@ -38,18 +38,6 @@ resilience4j:
         limitForPeriod: 15         # 每个时间段允许的请求数量
         limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
         timeoutDuration: 300ms     # 请求等待进入限流器的超时时间
-
-  circuitbreaker:
-    configs:
-      default:
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
-        permittedNumberOfCallsInHalfOpenState: 3
-    instances:
-      orderServiceCircuitBreaker:
-        baseConfig: default
 
 eureka:
   client:
