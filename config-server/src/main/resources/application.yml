@@ -11,3 +11,14 @@ spring:
       server:
         native:
           searchLocations: classpath:/configs
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}   # Eureka Server 的地址
+    register-with-eureka: true  # 是否将自己注册到Eureka服务器，默认为true
+    fetch-registry: true  # 是否从Eureka服务器获取注册信息，默认为true
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 10  # 心跳间隔（默认 30 秒）
+    lease-expiration-duration-in-seconds: 30  # 租约过期时间（默认 90 秒）

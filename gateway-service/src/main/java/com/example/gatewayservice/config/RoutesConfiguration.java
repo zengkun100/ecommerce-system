@@ -1,5 +1,6 @@
 package com.example.gatewayservice.config;
 
+import com.example.gatewayservice.filter.Resilience4jCircuitBreakerFilter;
 import com.example.gatewayservice.filter.Resilience4jRateLimiterFilter;
 import com.example.gatewayservice.filter.UserAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,9 @@ public class RoutesConfiguration {
 
     @Autowired
     private UserAuthenticationFilter userAuthenticationFilter;
+
+    @Autowired
+    private Resilience4jCircuitBreakerFilter circuitBreakerFilter;
 
     @Bean
     public RouteLocator declare(RouteLocatorBuilder builder) {
@@ -45,34 +49,10 @@ public class RoutesConfiguration {
                                 .filter(userAuthenticationFilter.apply(new UserAuthenticationFilter.Config()))
                                 .filter(new Resilience4jRateLimiterFilter("orderServiceRateLimiter")
                                         .apply(new Resilience4jRateLimiterFilter.Config()))
+                                .filter(circuitBreakerFilter
+                                        .apply(new Resilience4jCircuitBreakerFilter.Config("orderServiceCircuitBreaker")))
                         )
                         .uri("lb://order-service"))
-                // .route("user-service", r -> r.path("/users/**")
-                //         .filters(f -> f
-                //                 .filter(new Resilience4jRateLimiterFilter("userServiceRateLimiter")
-                //                         .apply(new Resilience4jRateLimiterFilter.Config()))
-                //         )
-                //         .uri("lb://user-service"))
                 .build();
-
-
-//        return builder.routes()
-//                .route("product-service", r -> r.path("/products/**")
-//                        .uri("lb://product-service"))
-//                .route("order-service", r -> r.path("/orders/**")
-//                        .uri("lb://order-service"))
-//                .build();
     }
-
-//    @Bean
-//    public GlobalFilter customFilter() {
-//        return (exchange, chain) -> {
-//            String accessToken = exchange.getRequest().getHeaders().getFirst("Authorization");
-//            if (accessToken == null || !validateAccessToken(accessToken)) {
-//                exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
-//                return exchange.getResponse().setComplete();
-//            }
-//            return chain.filter(exchange);
-//        };
-//    }
 }

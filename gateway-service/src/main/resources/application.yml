@@ -15,11 +15,6 @@ spring:
 
   zipkin:
     base-url: ${ZIPKIN_URL:http://127.0.0.1:9411}
-#    sender:
-#      type: rabbit
-#    rabbitmq:
-#      addresses: ${ZIPKIN_URL:127.0.0.1:5672}
-#      queue: zipkin
 
   cloud:
     gateway:
@@ -32,7 +27,7 @@ resilience4j:
   ratelimiter:
     instances:
       productServiceRateLimiter:
-        limitForPeriod: 10         # 每个时间段允许的请求数量
+        limitForPeriod: 1         # 每个时间段允许的请求数量
         limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
         timeoutDuration: 500ms     # 请求等待进入限流器的超时时间
       orderServiceRateLimiter:
@@ -43,6 +38,18 @@ resilience4j:
         limitForPeriod: 15         # 每个时间段允许的请求数量
         limitRefreshPeriod: 1s     # 刷新限流器计数的时间间隔
         timeoutDuration: 300ms     # 请求等待进入限流器的超时时间
+
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+    instances:
+      orderServiceCircuitBreaker:
+        baseConfig: default
 
 eureka:
   client:

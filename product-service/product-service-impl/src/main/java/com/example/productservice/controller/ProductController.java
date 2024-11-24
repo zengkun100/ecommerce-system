@@ -24,12 +24,12 @@ public class ProductController {
 //    public List<ProductInfo> getAllProducts() {
 //        return productService.getAllProducts();
 //    }
-//
-//    @GetMapping("/{id}")
-//    public ResponseEntity<ProductInfo> getProductById(@PathVariable Long id) {
-//        Optional<ProductInfo> product = productService.getProductById(id);
-//        return product.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-//    }
+
+   @GetMapping("/{id}")
+   public ResponseEntity<ProductInfo> getProductById(@PathVariable Long id) {
+       Optional<ProductInfo> product = productService.getProductById(id);
+       return product.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+   }
 
     @PostMapping
     public ResponseEntity<ApiResponse<Long>> createProduct(@RequestBody ProductInfo product) {
