@@ -2,11 +2,12 @@ package com.example.userservice.controller;
 
 import com.example.common.response.ApiCode;
 import com.example.common.response.ApiResponse;
-import com.example.userservice.exception.TokenExpiredException;
-import com.example.userservice.exception.TokenNotFoundException;
-import com.example.userservice.model.User;
+//import com.example.userservice.dto.UserRegistrationRequest;
+import com.example.userservice.dto.request.UserRegistrationRequest;
+import com.example.userservice.dto.request.LoginRequest;
 import com.example.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,36 +24,55 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Map<String, String>>> registerUser(@RequestParam String username, @RequestParam String password, @RequestParam String email, @RequestParam String role) {
-        userService.createUser(username, password, email, role);
-        Map<String, String> tokens = userService.loginUser(username, password);
+    public ResponseEntity<ApiResponse<Map<String, String>>> registerUser(@RequestBody UserRegistrationRequest request) {
+        userService.createUser(
+            request.getUsername(), 
+            request.getPassword(), 
+            request.getEmail(), 
+            request.getRole()
+        );
+        Map<String, String> tokens = userService.loginUser(request.getUsername(), request.getPassword());
         return ResponseEntity.ok(ApiResponse.success(tokens));
     }
 
     @DeleteMapping("/unregister")
-    public ResponseEntity<ApiResponse<Void>> unregisterUser(@RequestParam String accessToken) {
-        try {
-            userService.unregisterUser(accessToken);
-            return ResponseEntity.ok(ApiResponse.success(null));
-        } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
+    public ResponseEntity<ApiResponse<Void>> unregisterUser(@RequestHeader("Authorization") String token) {
+        if (!token.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(ApiCode.TOKEN_INVALID, "无效的认证token格式", null));
         }
+
+        String accessToken = token.substring(7);
+        userService.unregisterUser(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<Map<String, String>>> loginUser(@RequestParam String username, @RequestParam String password) {
-        Map<String, String> tokens = userService.loginUser(username, password);
+    public ResponseEntity<ApiResponse<Map<String, String>>> loginUser(@RequestBody LoginRequest request) {
+        Map<String, String> tokens = userService.loginUser(request.getUsername(), request.getPassword());
         return ResponseEntity.ok(ApiResponse.success(tokens));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logoutUser(@RequestParam String accessToken) {
-        userService.logoutUser(accessToken);
+    public ResponseEntity<ApiResponse<Void>> logoutUser(@RequestHeader("Authorization") String token) {
+        if (!token.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(ApiCode.TOKEN_INVALID, "无效的认证token格式", null));
+        }
+
+        String jwtToken = token.substring(7);
+        userService.logoutUser(jwtToken);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/refresh-token")
-    public ResponseEntity<ApiResponse<String>> refreshAccessToken(@RequestParam String refreshToken) {
+    public ResponseEntity<ApiResponse<String>> refreshAccessToken(@RequestHeader("Authorization") String token) {
+        if (!token.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new ApiResponse<>(ApiCode.TOKEN_INVALID, "无效的认证token格式", null));
+        }
+        
+        String refreshToken = token.substring(7);
         String newAccessToken = userService.refreshAccessToken(refreshToken);
         return ResponseEntity.ok(ApiResponse.success(newAccessToken));
     }

@@ -72,7 +72,7 @@ public class UserAuthenticationFilter extends AbstractGatewayFilterFactory<UserA
         response.setStatusCode(status);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
 
-        String errorJson = String.format("{\"error\":\"%s\",\"status\":%d}", message, status.value());
+        String errorJson = String.format("{\"message\":\"%s\",\"code\":%d}", message, status.value());
         DataBuffer buffer = response.bufferFactory().wrap(errorJson.getBytes(StandardCharsets.UTF_8));
         
         return response.writeWith(Mono.just(buffer));
