@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.time.ZoneId;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -32,6 +34,7 @@ public class UserServiceImpl implements UserService {
     private final AccessTokenRepository accessTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -46,11 +49,13 @@ public class UserServiceImpl implements UserService {
     public UserServiceImpl(
             UserRepository userRepository,
             AccessTokenRepository accessTokenRepository,
-            RefreshTokenRepository refreshTokenRepository) {
+            RefreshTokenRepository refreshTokenRepository,
+            RedisTemplate<String, String> redisTemplate) {
         this.userRepository = userRepository;
         this.accessTokenRepository = accessTokenRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
+        this.redisTemplate = redisTemplate;
     }
 
     public User createUser(String username, String rawPassword, String email, String role) {
@@ -117,15 +122,48 @@ public class UserServiceImpl implements UserService {
 
     @Transactional
     public void logoutUser(String accessTokenValue) {
-        Optional<AccessToken> accessTokenOpt = accessTokenRepository.findByToken(accessTokenValue);
-        accessTokenOpt.ifPresent(accessToken -> {
-            accessTokenRepository.deleteAllByUserId(accessToken.getUserId());
-            refreshTokenRepository.deleteAllByUserId(accessToken.getUserId());
-        });
+        try {
+            // 解析 JWT token 获取过期时间
+            var claims = Jwts.parser()
+                    .setSigningKey(jwtSecret)
+                    .parseClaimsJws(accessTokenValue)
+                    .getBody();
+            
+            Date expiration = claims.getExpiration();
+            Long userId = Long.parseLong(claims.getSubject());
+            
+            // 计算剩余过期时间（毫秒）
+            long remainingTime = expiration.getTime() - System.currentTimeMillis();
+            if (remainingTime > 0) {
+                // 将 token 加入黑名单，key 使用 "jwt_blacklist:" 前缀
+                String blacklistKey = "jwt_blacklist:" + accessTokenValue;
+                redisTemplate.opsForValue().set(
+                    blacklistKey,
+                    "blacklisted",
+                    remainingTime,
+                    TimeUnit.MILLISECONDS
+                );
+            }
+
+            // 删除数据库中的 token 记录
+            accessTokenRepository.deleteAllByUserId(userId);
+            refreshTokenRepository.deleteAllByUserId(userId);
+            
+        } catch (JwtException e) {
+            throw new RuntimeException("Invalid access token");
+        }
     }
 
     public boolean authenticateUser(String accessToken) {
         try {
+            // 首先检查 token 是否在黑名单中
+            String blacklistKey = "jwt_blacklist:" + accessToken;
+            Boolean isBlacklisted = redisTemplate.hasKey(blacklistKey);
+            if (Boolean.TRUE.equals(isBlacklisted)) {
+                return false;
+            }
+
+            // 验证 token 的有效性
             Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(accessToken);
             return true;
         } catch (ExpiredJwtException e) {
@@ -133,6 +171,10 @@ public class UserServiceImpl implements UserService {
         } catch (JwtException e) {
             return false;
         }
+    }
+
+    public String getUserIdFromToken(String token){
+        return Jwts.parser().setSigningKey(jwtSecret).parseClaimsJws(token).getBody().getSubject();
     }
 
     public String refreshAccessToken(String refreshTokenValue) {

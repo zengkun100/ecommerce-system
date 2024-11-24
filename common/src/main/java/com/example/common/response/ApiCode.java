@@ -13,13 +13,15 @@ public class ApiCode {
 
     public static final int PARAM_ERROR = 1001; // 参数错误
 
-    public static final int BIZ_ERROR = 2001;   // 业务错误
+    public static final int TOKEN_EXPIRED = 2002;
 
-    public static final int SYS_ERROR = 5001;   // 系统错误
-
+    public static final int TOKEN_INVALID = 2003;
 
     public static final int PRODUCT_NOT_FOUND = 4040;
     public static final int INSUFFICIENT_STOCK = 4041;
+
+
+    public static final int SYS_ERROR = 5001;   // 系统错误
 
 
     // 错误消息定义

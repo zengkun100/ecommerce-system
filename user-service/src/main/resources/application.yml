@@ -43,6 +43,10 @@ spring:
       uri: ${CONFIG_SERVER_URL:http://127.0.0.1:8888}
       fail-fast: false
 
+  redis:
+    host: localhost
+    port: 6379
+
 #  sql:
 #    init:
 #      schema-locations: classpath:schema.sql

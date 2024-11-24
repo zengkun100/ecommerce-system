@@ -1,5 +1,7 @@
 package com.example.gatewayservice.filter;
 
+import com.example.common.response.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.http.HttpStatus;
@@ -15,9 +17,19 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.core.ParameterizedTypeReference;
 
 @Component
 public class UserAuthenticationFilter extends AbstractGatewayFilterFactory<UserAuthenticationFilter.Config> {
+
+    private final WebClient.Builder webClientBuilder;
+
+    @Autowired
+    public UserAuthenticationFilter(WebClient.Builder webClientBuilder) {
+        super(Config.class);
+        this.webClientBuilder = webClientBuilder;
+    }
 
     @Override
     public GatewayFilter apply(Config config) {
@@ -25,31 +37,33 @@ public class UserAuthenticationFilter extends AbstractGatewayFilterFactory<UserA
             ServerHttpRequest request = exchange.getRequest();
             String token = request.getHeaders().getFirst("Authorization");
 
-            // 检查token是否存在
             if (token == null || !token.startsWith("Bearer ")) {
                 return onError(exchange, "未提供认证token", HttpStatus.UNAUTHORIZED);
             }
 
-            try {
-                token = token.substring(7);
-                Claims claims = Jwts.parser()
-                        .setSigningKey("your_secret_key")
-                        .parseClaimsJws(token)
-                        .getBody();
-                String userId = claims.get("userId", String.class);
+            return webClientBuilder.build()
+                .get()
+                .uri("lb://user-service/users/validate")
+                .header("Authorization", token)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<ApiResponse<String>>() {})
+                .flatMap(apiResponse -> {
+                    if (apiResponse.getCode() != 0) {
+                        return onError(exchange, apiResponse.getMessage(), HttpStatus.UNAUTHORIZED);
+                    }
+                    
+                    String userId = apiResponse.getData();
+                    if (userId == null || userId.isEmpty()) {
+                        return onError(exchange, "无效的认证信息", HttpStatus.UNAUTHORIZED);
+                    }
 
-                // 将用户信息传递给下游服务
-                ServerHttpRequest modifiedRequest = request.mutate()
-                        .header("X-User-Id", userId)
-                        .build();
+                    ServerHttpRequest modifiedRequest = request.mutate()
+                            .header("X-User-Id", userId)
+                            .build();
 
-                return chain.filter(exchange.mutate().request(modifiedRequest).build());
-                
-            } catch (ExpiredJwtException e) {
-                return onError(exchange, "token已过期", HttpStatus.UNAUTHORIZED);
-            } catch (JwtException e) {
-                return onError(exchange, "无效的token", HttpStatus.UNAUTHORIZED);
-            }
+                    return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                })
+                .onErrorResume(e -> onError(exchange, "认证服务异常", HttpStatus.UNAUTHORIZED));
         };
     }
 

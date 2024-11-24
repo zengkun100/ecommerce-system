@@ -1,6 +1,7 @@
 package com.example.orderservice.model;
 
 import lombok.Data;
+import lombok.ToString;
 
 import javax.persistence.*;
 import java.math.BigDecimal;
@@ -12,12 +13,13 @@ import java.math.BigDecimal;
 public class OrderDetail {
 
     @Id
-    @Column(name = "order_detail_id")
+    @Column(name = "order_detail_id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long orderDetailId;
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
+    @ToString.Exclude
     private Order order;
 
     @Column(name = "product_id", nullable = false)

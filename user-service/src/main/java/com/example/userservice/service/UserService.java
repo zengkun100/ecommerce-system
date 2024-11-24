@@ -1,29 +1,8 @@
 package com.example.userservice.service;
 
-import com.example.userservice.exception.TokenExpiredException;
-import com.example.userservice.exception.TokenNotFoundException;
-import com.example.userservice.model.AccessToken;
-import com.example.userservice.model.RefreshToken;
 import com.example.userservice.model.User;
-import com.example.userservice.repository.AccessTokenRepository;
-import com.example.userservice.repository.RefreshTokenRepository;
-import com.example.userservice.repository.UserRepository;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.time.ZoneId;
 
 public interface UserService {
 
@@ -36,6 +15,8 @@ public interface UserService {
     boolean authenticateUser(String accessToken);
 
     String refreshAccessToken(String refreshToken);
+
+    String getUserIdFromToken(String token);
 
     void unregisterUser(String accessToken);
 //

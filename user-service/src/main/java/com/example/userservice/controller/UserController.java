@@ -23,9 +23,10 @@ public class UserController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<Long>> registerUser(@RequestParam String username, @RequestParam String password, @RequestParam String email, @RequestParam String role) {
-        User user = userService.createUser(username, password, email, role);
-        return ResponseEntity.ok(ApiResponse.success(user.getId()));
+    public ResponseEntity<ApiResponse<Map<String, String>>> registerUser(@RequestParam String username, @RequestParam String password, @RequestParam String email, @RequestParam String role) {
+        userService.createUser(username, password, email, role);
+        Map<String, String> tokens = userService.loginUser(username, password);
+        return ResponseEntity.ok(ApiResponse.success(tokens));
     }
 
     @DeleteMapping("/unregister")
@@ -40,31 +41,27 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<Map<String, String>>> loginUser(@RequestParam String username, @RequestParam String password) {
-        try {
-            Map<String, String> tokens = userService.loginUser(username, password);
-            return ResponseEntity.ok(ApiResponse.success(tokens));
-        } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
-        }
+        Map<String, String> tokens = userService.loginUser(username, password);
+        return ResponseEntity.ok(ApiResponse.success(tokens));
     }
 
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logoutUser(@RequestParam String accessToken) {
-        try {
-            userService.logoutUser(accessToken);
-            return ResponseEntity.ok(ApiResponse.success(null));
-        } catch (Exception e) {
-            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
-        }
+        userService.logoutUser(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(null));
     }
 
     @PostMapping("/refresh-token")
     public ResponseEntity<ApiResponse<String>> refreshAccessToken(@RequestParam String refreshToken) {
-        try {
-            String newAccessToken = userService.refreshAccessToken(refreshToken);
-            return ResponseEntity.ok(ApiResponse.success(newAccessToken));
-        } catch (TokenExpiredException | TokenNotFoundException e) {
-            return ResponseEntity.ok(ApiResponse.error(ApiCode.SYS_ERROR, e.getMessage()));
-        }
+        String newAccessToken = userService.refreshAccessToken(refreshToken);
+        return ResponseEntity.ok(ApiResponse.success(newAccessToken));
+    }
+
+    @GetMapping("/validate")
+    public ResponseEntity<ApiResponse<String>> validateToken(@RequestHeader("Authorization") String token) {
+        String jwtToken = token.substring(7);
+        userService.authenticateUser(jwtToken);
+        String userId = userService.getUserIdFromToken(jwtToken);
+        return ResponseEntity.ok(ApiResponse.success(userId));
     }
 }
