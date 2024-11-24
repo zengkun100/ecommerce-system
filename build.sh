@@ -48,16 +48,16 @@ echo "Starting containers..."
 
 # 停止并删除旧容器
 echo "停止并删除旧容器..."
-docker-compose down
+docker compose down
 
 # 启动服务
 echo "启动服务..."
-docker-compose up -d
+docker compose up -d
 
 echo "所有服务启动完成！"
 
 # 输出服务状态
-docker-compose ps
+docker compose ps
 
 #docker exec -it order-service sh
 #apk add curl

@@ -2,10 +2,18 @@ version: "3.9"
 services:
   # 分布式跟踪服务（Zipkin）
   zipkin:
-    image: openzipkin/zipkin:latest
+    image: openzipkin/zipkin:latest-arm64
     container_name: zipkin
     ports:
       - "9411:9411"
+    networks:
+      - docker-network
+
+  redis:
+    image: redis:7.4.1-alpine3.20
+    container_name: redis
+    ports:
+      - "6379:6379"
     networks:
       - docker-network
 
@@ -54,11 +62,13 @@ services:
       - config-server
       - zipkin
       - eureka-server
+      - redis
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
       - CONFIG_SERVER_URL=http://config-server:8888
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka/
       - ZIPKIN_URL=http://zipkin:9411
+      - REDIS_URL=redis
     networks:
       - docker-network
 
