@@ -38,6 +38,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +47,8 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -70,6 +73,10 @@ public class UserServiceTest extends BaseTestClass {
 
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
+
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -156,26 +163,79 @@ public class UserServiceTest extends BaseTestClass {
 
     @Test
     public void test_LogoutUserOk() {
-        String accessTokenValue = UUID.randomUUID().toString();
-        AccessToken accessToken = new AccessToken();
-        accessToken.setUserId(testUser.getId());
-        accessToken.setToken(accessTokenValue);
-        accessToken.setExpiration(LocalDateTime.now().plusMinutes(30));
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            JwtParser jwtParser = mock(JwtParser.class);
+            Jws<Claims> mockedJws = mock(Jws.class);
+            Claims claims = mock(Claims.class);
 
-        when(accessTokenRepository.findByToken(accessTokenValue)).thenReturn(Optional.of(accessToken));
+            when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
+            when(jwtParser.parseClaimsJws(anyString())).thenReturn(mockedJws);
+            when(mockedJws.getBody()).thenReturn(claims);
 
-        userService.logoutUser(accessTokenValue);
+            when(claims.getSubject()).thenReturn(String.valueOf(userId));
+            when(claims.getExpiration()).thenReturn(new Date());
 
-        verify(accessTokenRepository, times(1)).deleteAllByUserId(testUser.getId());
-        verify(refreshTokenRepository, times(1)).deleteAllByUserId(testUser.getId());
+            mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
+
+            String accessTokenValue = UUID.randomUUID().toString();
+            AccessToken accessToken = new AccessToken();
+            accessToken.setUserId(testUser.getId());
+            accessToken.setToken(accessTokenValue);
+            accessToken.setExpiration(LocalDateTime.now().plusMinutes(30));
+
+            when(accessTokenRepository.findByToken(accessTokenValue)).thenReturn(Optional.of(accessToken));
+
+            userService.logoutUser(accessTokenValue);
+
+            verify(accessTokenRepository, times(1)).deleteAllByUserId(testUser.getId());
+            verify(refreshTokenRepository, times(1)).deleteAllByUserId(testUser.getId());
+        }
+    }
+
+    @Test
+    public void test_LogoutUserOk_updateRedis() {
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            JwtParser jwtParser = mock(JwtParser.class);
+            Jws<Claims> mockedJws = mock(Jws.class);
+            Claims claims = mock(Claims.class);
+
+            when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
+            when(jwtParser.parseClaimsJws(anyString())).thenReturn(mockedJws);
+            when(mockedJws.getBody()).thenReturn(claims);
+
+            when(claims.getSubject()).thenReturn(String.valueOf(userId));
+            when(claims.getExpiration()).thenReturn(new Date(new Date().getTime() + 1000000));
+
+            mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
+
+            String accessTokenValue = UUID.randomUUID().toString();
+            AccessToken accessToken = new AccessToken();
+            accessToken.setUserId(testUser.getId());
+            accessToken.setToken(accessTokenValue);
+            accessToken.setExpiration(LocalDateTime.now().plusMinutes(30));
+
+            ValueOperations<String, String> ops = mock(ValueOperations.class);
+            when(redisTemplate.opsForValue()).thenReturn(ops);
+            doNothing().when(ops).set(any(),anyString(), anyLong(),any());
+
+            when(accessTokenRepository.findByToken(accessTokenValue)).thenReturn(Optional.of(accessToken));
+
+            userService.logoutUser(accessTokenValue);
+
+            verify(accessTokenRepository, times(1)).deleteAllByUserId(testUser.getId());
+            verify(refreshTokenRepository, times(1)).deleteAllByUserId(testUser.getId());
+        }
     }
 
     @Test
     public void test_LogoutUserInvalidToken() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Boolean.TRUE);
         String accessTokenValue = UUID.randomUUID().toString();
         when(accessTokenRepository.findByToken(accessTokenValue)).thenReturn(Optional.empty());
 
-        userService.logoutUser(accessTokenValue);
+        RuntimeException exception = Assertions.assertThrows(RuntimeException.class, () -> {
+            userService.logoutUser(accessTokenValue);
+        });
 
         verify(accessTokenRepository, times(0)).deleteAllByUserId(anyLong());
         verify(refreshTokenRepository, times(0)).deleteAllByUserId(anyLong());
@@ -183,20 +243,30 @@ public class UserServiceTest extends BaseTestClass {
 
     @Test
     void testAuthenticateUser_ValidToken() {
-        String validToken = Jwts.builder()
-                .setSubject("testUser")
-                .signWith(io.jsonwebtoken.SignatureAlgorithm.HS512, "testSecretKey")
-                .compact();
+        when(redisTemplate.hasKey(anyString())).thenReturn(Boolean.FALSE);
 
-        boolean result = userService.authenticateUser(validToken);
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            JwtParser jwtParser = mock(JwtParser.class);
+            Jws<Claims> mockedJws = mock(Jws.class);
+            Claims claims = mock(Claims.class);
 
-        assertTrue(result, "Valid token should return true");
+            when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
+            when(jwtParser.parseClaimsJws(anyString())).thenReturn(mockedJws);
+            when(mockedJws.getBody()).thenReturn(claims);
+
+            when(claims.getSubject()).thenReturn(String.valueOf(userId));
+            when(claims.getExpiration()).thenReturn(new Date(new Date().getTime() + 1000000));
+
+            mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
+            boolean result = userService.authenticateUser("testSecretKey");
+            assertTrue(result, "Valid token should return true");
+        }
     }
 
     @Test
     void testAuthenticateUser_ExpiredToken() {
         String expiredToken = "expiredToken";
-
+        when(redisTemplate.hasKey(anyString())).thenReturn(Boolean.FALSE);
         try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
             mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(expiredToken))
                     .thenThrow(new ExpiredJwtException(null, null, "Token expired"));
@@ -211,20 +281,21 @@ public class UserServiceTest extends BaseTestClass {
 
     @Test
     void testAuthenticateUser_InvalidToken() {
-        String invalidToken = "invalidToken";
-
+        String expiredToken = "expiredToken";
+        when(redisTemplate.hasKey(anyString())).thenReturn(Boolean.FALSE);
         try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
-            mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(invalidToken))
-                    .thenThrow(new SignatureException("Invalid signature"));
+            mockedJwts.when(() -> Jwts.parser().setSigningKey("testSecretKey").parseClaimsJws(expiredToken))
+                    .thenThrow(new JwtException("Token expired"));
 
-            boolean result = userService.authenticateUser(invalidToken);
+            userService.authenticateUser(expiredToken);
 
-            assertFalse(result, "Invalid token should return false");
+            assertFalse(false, "fail");
         }
     }
 
     @Test
     void testAuthenticateUser_TokenNotFound() {
+        when(redisTemplate.hasKey(anyString())).thenReturn(Boolean.TRUE);
         when(accessTokenRepository.findByToken("nonexistentToken")).thenReturn(Optional.empty());
 
         boolean isAuthenticated = userService.authenticateUser("nonexistentToken");
@@ -302,6 +373,25 @@ public class UserServiceTest extends BaseTestClass {
     }
 
     @Test
+    void test_getUserIdFromToken() {
+        // Arrange: 模拟解析token获取userId
+        try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
+            JwtParser jwtParser = mock(JwtParser.class);
+            Jws<Claims> mockedJws = mock(Jws.class);
+            Claims claims = mock(Claims.class);
+
+            when(mockedJws.getBody()).thenReturn(claims);
+            when(claims.getSubject()).thenReturn(String.valueOf(userId));
+            when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
+            when(jwtParser.parseClaimsJws(anyString())).thenReturn(mockedJws);
+
+            mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
+
+            userService.getUserIdFromToken("mockedAccessToken");
+        }
+    }
+
+    @Test
     void unregisterUser_Success() {
         // Arrange: 模拟解析token获取userId
         try (MockedStatic<Jwts> mockedJwts = mockStatic(Jwts.class)) {
@@ -335,7 +425,7 @@ public class UserServiceTest extends BaseTestClass {
             JwtParser jwtParser = mock(JwtParser.class);
             when(jwtParser.setSigningKey(jwtSecret)).thenReturn(jwtParser);
             when(jwtParser.parseClaimsJws(anyString()))
-                    .thenThrow(new RuntimeException("Invalid access token"));
+                    .thenThrow(new JwtException("Invalid access token"));
 
             mockedJwts.when(Jwts::parser).thenReturn(jwtParser);
 

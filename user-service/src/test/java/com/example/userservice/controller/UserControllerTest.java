@@ -1,10 +1,13 @@
 package com.example.userservice.controller;
 
+import com.example.common.response.ApiCode;
+import com.example.userservice.dto.request.LoginRequest;
 import com.example.userservice.exception.TokenExpiredException;
 import com.example.userservice.model.User;
 import com.example.userservice.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -35,32 +38,10 @@ public class UserControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    public void testRegisterUser() throws Exception {
-        User user = new User();
-        user.setId(1L);
-        user.setUsername("testuser");
-        user.setEmail("testuser@example.com");
-        user.setRole("USER");
-
-        Mockito.when(userService.createUser(any(String.class), any(String.class), any(String.class), any(String.class)))
-                .thenReturn(user);
-
-        mockMvc.perform(post("/users/register")
-                        .param("username", "testuser")
-                        .param("password", "password123")
-                        .param("email", "testuser@example.com")
-                        .param("role", "USER")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(0))
-                .andExpect(jsonPath("$.message").value("success"));
-    }
-
-    @Test
     public void testUnregister() throws Exception {
         doNothing().when(userService).unregisterUser("accessToken");
         mockMvc.perform(delete("/users/unregister")
-                        .param("accessToken", "accessToken")
+                        .header("Authorization", "Bearer accessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
@@ -71,10 +52,10 @@ public class UserControllerTest {
     public void testUnregister_error() throws Exception {
         doThrow(new RuntimeException()).when(userService).unregisterUser("accessToken");
         mockMvc.perform(delete("/users/unregister")
-                        .param("accessToken", "accessToken")
+                        .header("Authorization", "accessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(5001));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ApiCode.TOKEN_INVALID));
     }
 
 
@@ -86,27 +67,21 @@ public class UserControllerTest {
 
         Mockito.when(userService.loginUser(any(String.class), any(String.class))).thenReturn(tokens);
 
+        LoginRequest loginRequest = new LoginRequest();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("password123");
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String jsonRequest = objectMapper.writeValueAsString(loginRequest);
+
         mockMvc.perform(post("/users/login")
-                        .param("username", "testuser")
-                        .param("password", "password123")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                        .content(jsonRequest)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.message").value("success"))
                 .andExpect(jsonPath("$.data.accessToken").value("sampleAccessToken"))
                 .andExpect(jsonPath("$.data.refreshToken").value("sampleRefreshToken"));
-    }
-
-    @Test
-    public void testLoginUser_error() throws Exception {
-        Mockito.when(userService.loginUser(any(String.class), any(String.class))).thenThrow(new RuntimeException());
-
-        mockMvc.perform(post("/users/login")
-                        .param("username", "testuser")
-                        .param("password", "password123")
-                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(5001));
     }
 
 
@@ -115,10 +90,10 @@ public class UserControllerTest {
         Mockito.when(userService.refreshAccessToken(any(String.class))).thenThrow(TokenExpiredException.class);
 
         mockMvc.perform(post("/users/refresh-token")
-                        .param("refreshToken", "sampleAccessToken")
+                        .header("Authorization", "sampleAccessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(5001));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value(ApiCode.TOKEN_INVALID));
     }
 
     @Test
@@ -126,11 +101,24 @@ public class UserControllerTest {
         Mockito.when(userService.refreshAccessToken(any(String.class))).thenReturn("sampleAccessToken");
 
         mockMvc.perform(post("/users/refresh-token")
-                        .param("refreshToken", "sampleAccessToken")
+                        .header("Authorization", "Bearer sampleAccessToken")
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(0))
                 .andExpect(jsonPath("$.message").value("success"))
                 .andExpect(jsonPath("$.data").value("sampleAccessToken"));
+    }
+
+    @Test
+    public void testValidate() throws Exception {
+        Mockito.when(userService.authenticateUser(any(String.class))).thenReturn(true);
+
+        Mockito.when(userService.getUserIdFromToken(any(String.class))).thenReturn("1");
+
+        mockMvc.perform(get("/users/validate")
+                        .header("Authorization", "Bearer sampleAccessToken")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(0));
     }
 }

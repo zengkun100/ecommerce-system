@@ -3,13 +3,18 @@ package com.example.orderservice.service;
 import com.example.common.response.ApiResponse;
 import com.example.orderservice.client.ProductServiceClient;
 import com.example.orderservice.enums.OrderStatus;
+import com.example.orderservice.exception.AccessDeniedException;
 import com.example.orderservice.exception.OrderException;
+import com.example.orderservice.exception.OrderNotFoundException;
 import com.example.orderservice.model.Order;
+import com.example.orderservice.model.OrderDetail;
 import com.example.orderservice.model.OrderItemRequest;
 import com.example.orderservice.model.OrderRequest;
+import com.example.orderservice.model.OrderResponse;
 import com.example.orderservice.repository.OrderRepository;
 import com.example.orderservice.service.impl.OrderServiceImpl;
 import com.example.productservice.api.model.ProductInfo;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
@@ -19,8 +24,10 @@ import org.springframework.http.ResponseEntity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -179,5 +186,66 @@ public class OrderServiceTest {
         });
 
         assertEquals("商品[Product 1]库存不足，当前库存:1，需求数量:5", exception.getMessage());
+    }
+
+    @Test
+    void testGetOrderDetail_OrderNotFound() {
+        Long orderId = 1L;
+        Long userId = 123L;
+
+        Mockito.when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(OrderNotFoundException.class, () -> {
+            orderService.getOrderDetail(orderId, userId);
+        });
+    }
+
+    @Test
+    void testGetOrderDetail_AccessDenied() {
+        Long orderId = 1L;
+        Long userId = 123L;
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(456L);
+        Mockito.when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        Assertions.assertThrows(AccessDeniedException.class, () -> {
+            orderService.getOrderDetail(orderId, userId);
+        });
+    }
+
+    @Test
+    void testGetOrderDetail_Success() {
+        Long orderId = 1L;
+        Long userId = 123L;
+
+        Order order = new Order();
+        order.setId(orderId);
+        order.setUserId(userId);
+        order.setTotalAmount(new BigDecimal("100.00"));
+        order.setStatus(OrderStatus.PENDING);
+        order.setCreateTime(LocalDateTime.now());
+
+        OrderDetail orderDetail = new OrderDetail();
+        orderDetail.setProductId(1L);
+        orderDetail.setQuantity(2);
+        orderDetail.setPrice(new BigDecimal("50.00"));
+        order.setOrderDetails(Collections.singletonList(orderDetail));
+
+        Mockito.when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        OrderResponse response = orderService.getOrderDetail(orderId, userId);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(orderId.toString(), response.getOrderId());
+        Assertions.assertEquals(userId, response.getUserId());
+        Assertions.assertEquals(order.getTotalAmount(), response.getTotalAmount());
+        Assertions.assertEquals(order.getStatus().name(), response.getOrderStatus());
+        Assertions.assertEquals(1, response.getItems().size());
+        Assertions.assertEquals(orderDetail.getProductId(), response.getItems().get(0).getProductId());
+        Assertions.assertEquals(orderDetail.getQuantity(), response.getItems().get(0).getQuantity());
+        Assertions.assertEquals(orderDetail.getPrice(), response.getItems().get(0).getPrice());
+        Assertions.assertEquals(orderDetail.getPrice().multiply(new BigDecimal(orderDetail.getQuantity())), response.getItems().get(0).getSubtotal());
     }
 }
