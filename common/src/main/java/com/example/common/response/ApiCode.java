@@ -17,6 +17,12 @@ public class ApiCode {
 
     public static final int TOKEN_INVALID = 2003;
 
+    public static final int ACCESS_DENIED = 2004;
+
+    public static final int USER_NOT_AUTHORIZED = 2005;
+
+    public static final int ORDER_NOT_FOUND = 3004;
+
     public static final int PRODUCT_NOT_FOUND = 4040;
     public static final int INSUFFICIENT_STOCK = 4041;
 

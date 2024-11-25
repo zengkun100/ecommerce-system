@@ -1,8 +1,11 @@
 package com.example.orderservice.controller;
 
+import com.example.common.response.ApiCode;
 import com.example.common.response.ApiResponse;
 import com.example.orderservice.model.OrderRequest;
+import com.example.orderservice.model.OrderResponse;
 import com.example.orderservice.service.OrderService;
+//import com.sun.tools.javac.util.DefinedBy;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,5 +44,17 @@ public class OrderController {
     // 添加 fallback 方法
     public ResponseEntity<ApiResponse<String>> placeOrderFallback(OrderRequest orderRequest, HttpServletRequest request, Exception e) {
         return ResponseEntity.ok(new ApiResponse<>(503, "Product service is not available", null));
+    }
+
+    @GetMapping("/{orderId}")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderDetail(@PathVariable String orderId, 
+                                                                   HttpServletRequest request) {
+        String userIdStr = request.getHeader("X-User-Id");
+        if (userIdStr == null) {
+            return ResponseEntity.ok(new ApiResponse<>(ApiCode.USER_NOT_AUTHORIZED, "User not authenticated", null));
+        }
+        
+        OrderResponse orderResponse = orderService.getOrderDetail(Long.parseLong(orderId), Long.parseLong(userIdStr));
+        return ResponseEntity.ok(new ApiResponse<>(ApiCode.SUCCESS, "Success", orderResponse));
     }
 }

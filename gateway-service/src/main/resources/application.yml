@@ -43,21 +43,8 @@ eureka:
   client:
     service-url:
       defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka/}   # Eureka Server 的地址
-    #        register-with-eureka: true  # Register gateway service with Eureka
-    #        fetch-registry: true  # Fetch service registry to route requests
-    #        registry-fetch-interval-seconds: 30  # 从 Eureka 服务器获取注册信息的间隔时间（秒），默认值通常是 30
-    #        instance-info-replication-interval-seconds: 40  # 实例信息复制到其他 Eureka 服务器的间隔时间（秒），默认值通常是 40
-    #    lease:
-    #      duration: 90  # 实例在 Eureka 服务器上的租约到期时间（秒），在到期前没有收到心跳，Eureka 将从注册表中移除该实例
-    #      renewal-interval-in-seconds: 30  # 实例发送心跳到 Eureka 服务器的间隔时间（秒），默认值是租约到期时间的三分之一
-
-    #    registry-fetch-interval-seconds: 30
     register-with-eureka: true  # 是否将自己注册到Eureka服务器，默认为true
     fetch-registry: true  # 是否从Eureka服务器获取注册信息，默认为true
-  #    instance-info-replication-interval-seconds: 10  # 间隔多久（秒）向Eureka服务器发送一次心跳，默认为30秒
-  #    initial-instance-info-replication-interval-seconds: 5  # 初始向Eureka服务器发送心跳的间隔时间，默认为40秒
-  #        lease-renewal-interval-in-seconds: 5  # 服务续约间隔时间，默认为30秒
-  #        lease-expiration-duration-in-seconds: 90  # 服务租约到期时间，默认为90秒
   instance:
     prefer-ip-address: true
     lease-renewal-interval-in-seconds: 10  # 心跳间隔（默认 30 秒）

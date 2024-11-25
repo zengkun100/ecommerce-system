@@ -3,11 +3,10 @@ package com.example.orderservice.service.impl;
 import com.example.common.response.ApiResponse;
 import com.example.orderservice.client.ProductServiceClient;
 import com.example.orderservice.enums.OrderStatus;
+import com.example.orderservice.exception.AccessDeniedException;
 import com.example.orderservice.exception.OrderException;
-import com.example.orderservice.model.Order;
-import com.example.orderservice.model.OrderDetail;
-import com.example.orderservice.model.OrderItemRequest;
-import com.example.orderservice.model.OrderRequest;
+import com.example.orderservice.exception.OrderNotFoundException;
+import com.example.orderservice.model.*;
 import com.example.orderservice.repository.OrderRepository;
 import com.example.orderservice.service.OrderService;
 import com.example.productservice.api.model.ProductInfo;
@@ -117,5 +116,36 @@ public class OrderServiceImpl implements OrderService {
 
         return savedOrder.getId().toString();
 
+    }
+
+    @Override
+    public OrderResponse getOrderDetail(Long orderId, Long userId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException("Order not found: " + orderId));
+        
+        // 检查订单是否属于当前用户
+        if (!order.getUserId().equals(userId)) {
+            throw new AccessDeniedException("You don't have permission to access this order");
+        }
+        
+        // 转换为 OrderResponse
+        List<OrderResponse.OrderItemResponse> itemResponses = order.getOrderDetails().stream()
+                .map(item -> OrderResponse.OrderItemResponse.builder()
+                        .productId(item.getProductId())
+//                        .productName(item.getProductId())
+                        .quantity(item.getQuantity())
+                        .price(item.getPrice())
+                        .subtotal(item.getPrice().multiply(new BigDecimal(item.getQuantity())))
+                        .build())
+                .collect(Collectors.toList());
+        
+        return OrderResponse.builder()
+                .orderId(String.valueOf(order.getId()))
+                .userId(order.getUserId())
+                .totalAmount(order.getTotalAmount())
+                .orderStatus(order.getStatus().name())
+                .createTime(order.getCreateTime())
+                .items(itemResponses)
+                .build();
     }
 }

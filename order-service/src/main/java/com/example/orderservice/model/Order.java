@@ -3,7 +3,9 @@ package com.example.orderservice.model;
 //import com.example.orderservice.OrderStatus;
 import com.example.orderservice.converter.OrderStatusConverter;
 import com.example.orderservice.enums.OrderStatus;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
@@ -14,6 +16,8 @@ import java.util.List;
 @Entity
 @Table(name = "t_order")
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Order {
 
     @Id
