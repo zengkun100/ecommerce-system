@@ -73,6 +73,25 @@ public class ProductControllerTest {
     }
 
     @Test
+    void testGetProduct_Success() throws Exception {
+        // 模拟查找和更新产品的行为
+        when(productService.getProductById(1L)).thenReturn(Optional.of(productInfo));
+        ProductInfo updatedProduct = new ProductInfo();
+        updatedProduct.setId(1L);
+        updatedProduct.setName("Updated Product");
+        updatedProduct.setPrice(BigDecimal.TEN);
+        updatedProduct.setStock(40);
+
+        mockMvc.perform(get("/products/{id}", 1L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1));
+
+        verify(productService, times(1)).getProductById(1L);
+    }
+
+    @Test
     void testUpdateProduct_Success() throws Exception {
         // 模拟查找和更新产品的行为
         when(productService.getProductById(1L)).thenReturn(Optional.of(productInfo));
