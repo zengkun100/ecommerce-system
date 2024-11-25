@@ -234,3 +234,12 @@ Supports user registration, deregistration, login, and logout.
     "message": "success"
 }
 ```
+
+### Test reports
+There are test cases for the 3 services: order-service, user-service and product-service. The test reports for each service are in the target/surefire-reports directory of each service.
+
+Run in the ecommerce-system directory:
+```
+mvn clean test
+```
+Also generate test reports

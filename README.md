@@ -234,3 +234,12 @@ Authorization: Bearer <token>
     "message": "success",
 }
 ```
+
+### 测试报告
+order-service，user-service 和 product-service 这 3 个服务有测试用例。各自的测试报告在target/surefire-reports目录下。
+
+在ecommerce-system目录下运行：
+```
+mvn clean test
+```
+也可生成测试报告
