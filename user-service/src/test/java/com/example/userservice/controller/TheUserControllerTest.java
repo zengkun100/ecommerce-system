@@ -73,10 +73,8 @@ class TheUserControllerTest {
 
         Mockito.when(userService.loginUser(request.getUsername(), request.getPassword())).thenReturn(mockTokens);
 
-        // 调用 Controller 方法
         ResponseEntity<ApiResponse<Map<String, String>>> response = userController.registerUser(request);
 
-        // 验证方法调用
         Mockito.verify(userService).createUser(
                 request.getUsername(),
                 request.getPassword(),
@@ -85,7 +83,6 @@ class TheUserControllerTest {
         );
         Mockito.verify(userService).loginUser(request.getUsername(), request.getPassword());
 
-        // 验证返回结果
         Assertions.assertNotNull(response);
         Assertions.assertEquals(HttpStatus.OK, response.getStatusCode());
         Assertions.assertTrue(response.getBody().isSuccess());

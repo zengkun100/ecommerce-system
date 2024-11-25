@@ -6,19 +6,17 @@ Contract.make {
     description "should return even when number input is even"
     request {
         method POST()
-        url("/users/register") {
-            queryParameters {
-                parameter("username", "admin")
-                parameter("password", "password")
-                parameter("email", "a@123.com")
-                parameter("role", "admin")
-            }
+        url("/users/register")
+        headers {
+            contentType(applicationJson())
         }
+        body(   "id": 1,
+            "email": "a@123.com",
+            "password": "123",
+            "role": "admin")
     }
     response {
-        body(    "id": 1,
-                "email": "a@123.com",
-                "role": "admin")
+        body("code": 0)
         status 200
     }
 }
